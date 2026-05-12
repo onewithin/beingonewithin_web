@@ -1,12 +1,27 @@
-import {
-    Camera,
-} from "lucide-react"
 import Image from "next/image"
+import { redirect } from "next/navigation"
 import Header from "./_components/header"
 import MenuItem from "./_components/menuItem"
 import BottomNav from "@/components/bottomNav"
+import ProfilePhotoUpload from "./_components/ProfilePhotoUpload"
+import { getProfileData } from "@/lib/server/home"
+import { logoutAction } from "@/lib/actions/auth"
 
-export default function ProfilePage() {
+async function signOutProfileAction(formData: FormData) {
+    'use server'
+    void formData
+    await logoutAction()
+    redirect('/sign-in')
+}
+
+export default async function ProfilePage() {
+    const profile = await getProfileData()
+    const profileName = profile?.name || 'User'
+    const profileEmail = profile?.email || 'No email found'
+    const profileImage = profile?.image
+    const profileInitial = profileName.charAt(0).toUpperCase() || 'U'
+    const planLabel = profile?.planLabel || 'Free Plan'
+
     return (
         <div className="min-h-screen  flex flex-col ">
             <div className="relative  p-4  h-[300px] bg-[#2B7272] rounded-b-[50px]">
@@ -23,26 +38,21 @@ export default function ProfilePage() {
 
                     <Header />
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2  flex flex-col items-center  mt-6 ">
-                        <div className="relative">
-                            <div className="w-[150px] h-[150px] rounded-[25px] overflow-hidden border-5 border-[#F5F5F5] shadow-lg">
-                                <Image
-                                    src="/icons/audio.jpg"
-                                    alt="Teresa profile"
-                                    width={200}
-                                    height={200}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 bg-[#1f5d57] rounded-md p-1 border-2 border-white">
-                                <Camera className="h-5 w-4 text-white" />
-                            </div>
-                        </div>
-                        <h2 className="text-[#484848] text-2xl font-sniglet-400 mt-8 text-[24px] ">Teresa</h2>
+                        <ProfilePhotoUpload
+                            currentImage={profileImage ?? null}
+                            profileInitial={profileInitial}
+                            profileName={profileName}
+                        />
+                        <h2 className="text-[#484848] text-2xl font-sniglet-400 mt-8 text-[24px] ">{profileName}</h2>
+                        <p className="text-[#7E7E7E] mt-1 text-sm font-poppins-400">{profileEmail}</p>
                     </div>
                 </div>
             </div>
             <div className="bg-white w-full flex-grow px-6 py-10">
-                <MenuItem />
+                <MenuItem planLabel={planLabel} signOutAction={signOutProfileAction} />
+                <p className="text-center text-[#2B7272] text-[11px] mt-2 mb-20 md:mb-24 font-poppins-400">
+                    Prana App v1.0.0
+                </p>
             </div>
             <BottomNav activeTab="profile" />
         </div >

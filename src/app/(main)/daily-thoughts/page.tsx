@@ -1,14 +1,21 @@
 import { Badge } from '@/components/ui/badge'
-import { FolderPlus, Sun, Volume2 } from 'lucide-react'
+import { Play, Sun, Volume2 } from 'lucide-react'
 import React from 'react'
 import Header from './_components/header'
-import BadgeSelector from './_components/category'
-import AudioCard from '@/components/audioCard'
 import BottomNav from '@/components/bottomNav'
+import { getDailyThoughtsData } from '@/lib/server/home'
 
-function DailyThoughts() {
+function formatDuration(duration?: string | number | null): string {
+    if (duration === null || duration === undefined) return '10 min'
+    if (typeof duration === 'number') return `${duration} min`
+    return duration
+}
+
+async function DailyThoughts() {
+    const thoughts = await getDailyThoughtsData(50)
+
     return (
-        <div className='h-screen bg-mint-to-white font-poppins-400 p-4'>
+        <div className='min-h-screen bg-mint-to-white font-poppins-400 p-4'>
             <div className=' md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] mx-auto'>
                 <div className=' flex justify-between items-center'>
                     <Header />
@@ -24,10 +31,30 @@ function DailyThoughts() {
                             Audio
                         </Badge>
                         <div className="w-full my-5">
-                            <AudioCard />
-                            <AudioCard />
-                            <AudioCard />
-                            <AudioCard />
+                            {thoughts.length === 0 ? (
+                                <p className='text-sm text-[#1F5D57] mt-4'>No daily thoughts available right now.</p>
+                            ) : (
+                                thoughts.map((thought) => (
+                                    <div key={thought.id} className='bg-white w-full min-h-[80px] my-2 rounded-[30px] p-3 flex justify-between items-center'>
+                                        <div className='flex gap-3 items-center'>
+                                            <div className='w-10 h-10 rounded-full bg-[#F8F9FF] flex items-center justify-center text-[#1F5D57]'>
+                                                ✨
+                                            </div>
+                                            <div>
+                                                <p className='font-poppins-600 text-[#1F5D57] text-[16px] line-clamp-1'>
+                                                    {thought.title}
+                                                </p>
+                                                <p className='text-[#484848] font-poppins-400 text-[12px]'>
+                                                    {formatDuration(thought.duration)} • Daily Thought
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className='bg-[#F8F9FF] h-[38px] w-[38px] rounded-full flex items-center justify-center'>
+                                            <Play className='h-4 w-4 text-[#484848] fill-[#484848]' />
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
 
                     </div>

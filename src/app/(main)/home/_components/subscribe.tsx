@@ -7,7 +7,7 @@ function Subscribe() {
         <div className='w-full bg-[#DDF3E5]  p-5 rounded-2xl my-16 mb-32 lg:mb-28'>
             <div>
                 <LockOpen className='h-6 w-6' color={"#1F5D57"} />
-                <p className='font-poppins-600 text-[#1F5D57] text-[18px]'> Unlock With Prana Premium</p>
+                <p className='font-poppins-600 text-[#1F5D57] text-[18px]'> Unlock beingOnwith Premium</p>
                 <p className='font-poppins-400 text-[#1F5D57] text-[12px]'>Experience deeper rest, healing, and clarity — anytime you need.</p>
             </div>
             <div className='font-poppins-600 text-[#1F5D57] text-[12px] my-4'>

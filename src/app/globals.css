@@ -74,13 +74,19 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  --primary: #2B7272;
-  --primary-foreground: #FFFFFF;
+  --primary: #2b7272;
+  --primary-foreground: #ffffff;
 
-  --secondary: #1F5D57;
-  --secondary-foreground: #FFFFFF;
+  --secondary: #1f5d57;
+  --secondary-foreground: #ffffff;
   --text-color: #484848;
-  --background-gradient: linear-gradient(to bottom, #DDF3E5, #FFFFFF);
+  --background-gradient: linear-gradient(to bottom, #ddf3e5, #ffffff);
+  --landing-bg-start: #e5f2d6;
+  --landing-bg-end: #ffffff;
+  --landing-primary: #2b7272;
+  --landing-button: #1f5d57;
+  --landing-button-hover: #184945;
+  --landing-text-muted: #484848;
 }
 
 .dark {
@@ -115,13 +121,19 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
-  --primary: #2B7272;
-  --primary-foreground: #FFFFFF;
+  --primary: #2b7272;
+  --primary-foreground: #ffffff;
 
-  --secondary: #1F5D57;
-  --secondary-foreground: #FFFFFF;
+  --secondary: #1f5d57;
+  --secondary-foreground: #ffffff;
   --text-color: #484848;
-  --background-gradient: linear-gradient(to bottom, #DDF3E5, #FFFFFF);
+  --background-gradient: linear-gradient(to bottom, #ddf3e5, #ffffff);
+  --landing-bg-start: #e5f2d6;
+  --landing-bg-end: #ffffff;
+  --landing-primary: #2b7272;
+  --landing-button: #1f5d57;
+  --landing-button-hover: #184945;
+  --landing-text-muted: #484848;
 }
 
 @layer base {
@@ -149,6 +161,25 @@
   .bg-mint-to-white {
     background-image: var(--background-gradient);
   }
+  .bg-landing-gradient {
+    background-image: linear-gradient(
+      to bottom,
+      var(--landing-bg-start),
+      var(--landing-bg-end)
+    );
+  }
+  .text-landing-primary {
+    color: var(--landing-primary);
+  }
+  .text-landing-muted {
+    color: var(--landing-text-muted);
+  }
+  .bg-landing-button {
+    background-color: var(--landing-button);
+  }
+  .hover\:bg-landing-button-hover:hover {
+    background-color: var(--landing-button-hover);
+  }
   .font-poppins-400 {
     font-family: var(--font-poppins);
     font-weight: 400;
@@ -161,6 +192,10 @@
     font-family: var(--font-poppins);
     font-weight: 600;
   }
+  .font-poppins-700 {
+    font-family: var(--font-poppins);
+    font-weight: 700;
+  }
 
   .font-sniglet-400 {
     font-family: var(--font-sniglet);
@@ -170,7 +205,6 @@
     font-family: var(--font-sniglet);
     font-weight: 600;
   }
-
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -179,12 +213,10 @@
 
 /* Hide scrollbar for IE, Edge */
 .scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
 /* Hide scrollbar for Firefox */
 .scrollbar-hide {
-  scrollbar-width: none;  /* Firefox */
+  scrollbar-width: none; /* Firefox */
 }
-
-

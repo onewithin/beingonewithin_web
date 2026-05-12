@@ -3,15 +3,16 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export type QuestionOption = {
+    id: string;
     text: string;
-    emoji: string;
+    emoji?: string;
 };
 
 interface ReusableQuestionProps {
     greeting?: string;
     question: string;
     options: QuestionOption[];
-    defaultValue?: string;
+    value?: string;
     onChange?: (value: string) => void;
 }
 
@@ -19,7 +20,7 @@ const Question: React.FC<ReusableQuestionProps> = ({
     greeting = "Hi there!",
     question,
     options,
-    defaultValue,
+    value,
     onChange,
 }) => {
     return (
@@ -32,15 +33,15 @@ const Question: React.FC<ReusableQuestionProps> = ({
                     {question}
                 </h1>
                 <RadioGroup
-                    defaultValue={defaultValue ?? options[0]?.text}
+                    value={value}
                     className="my-8 text-[#484848]"
                     onValueChange={onChange}
                 >
-                    {options.map(({ text, emoji }) => (
-                        <div key={text} className="flex items-center space-x-2">
-                            <RadioGroupItem value={text} id={text} />
-                            <Label htmlFor={text} className="text-[16px]">
-                                {emoji} {text}
+                    {options.map(({ id, text, emoji }) => (
+                        <div key={id} className="flex items-center space-x-2">
+                            <RadioGroupItem value={id} id={id} />
+                            <Label htmlFor={id} className="text-[16px]">
+                                {emoji ? `${emoji} ${text}` : text}
                             </Label>
                         </div>
                     ))}
