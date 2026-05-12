@@ -210,6 +210,57 @@ export async function redirectToSignInAfterDeleteAction(): Promise<never> {
   redirect("/sign-in");
 }
 
+export async function updateProfileNameAction(
+  name: string,
+): Promise<ActionResult> {
+  const trimmed = name.trim();
+  if (!trimmed) {
+    return { success: false, message: "Name cannot be empty." };
+  }
+  if (trimmed.length > 60) {
+    return { success: false, message: "Name must be 60 characters or fewer." };
+  }
+
+  const { token, userId } = await getAuthContext();
+  if (!token || !userId) {
+    return { success: false, message: "Not authenticated." };
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/user/${userId}`, {
+      method: "PATCH",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name: trimmed }),
+    });
+
+    const data = (await response.json().catch(() => null)) as {
+      success?: boolean;
+      message?: string;
+    } | null;
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || "Failed to update name.",
+      };
+    }
+
+    revalidatePath("/account");
+    revalidatePath("/profile");
+
+    return {
+      success: true,
+      message: data?.message || "Name updated successfully.",
+    };
+  } catch {
+    return { success: false, message: "Network error. Please try again." };
+  }
+}
+
 export async function updateProfilePhotoAction(
   formData: FormData,
 ): Promise<ActionResult> {

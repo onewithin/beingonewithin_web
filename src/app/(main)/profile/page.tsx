@@ -1,9 +1,11 @@
+import {
+    Camera,
+} from "lucide-react"
 import Image from "next/image"
 import { redirect } from "next/navigation"
 import Header from "./_components/header"
 import MenuItem from "./_components/menuItem"
 import BottomNav from "@/components/bottomNav"
-import ProfilePhotoUpload from "./_components/ProfilePhotoUpload"
 import { getProfileData } from "@/lib/server/home"
 import { logoutAction } from "@/lib/actions/auth"
 
@@ -38,11 +40,25 @@ export default async function ProfilePage() {
 
                     <Header />
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2  flex flex-col items-center  mt-6 ">
-                        <ProfilePhotoUpload
-                            currentImage={profileImage ?? null}
-                            profileInitial={profileInitial}
-                            profileName={profileName}
-                        />
+                        <div className="relative">
+                            <div className="w-[150px] h-[150px] rounded-[25px] overflow-hidden border-5 border-[#F5F5F5] shadow-lg bg-white flex items-center justify-center">
+                                {profileImage ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={profileImage}
+                                        alt={`${profileName} profile`}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-[#1f5d57] text-white flex items-center justify-center font-poppins-600 text-5xl">
+                                        {profileInitial}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 bg-[#1f5d57] rounded-md p-1 border-2 border-white" title="Profile photo editing coming soon">
+                                <Camera className="h-5 w-4 text-white" />
+                            </div>
+                        </div>
                         <h2 className="text-[#484848] text-2xl font-sniglet-400 mt-8 text-[24px] ">{profileName}</h2>
                         <p className="text-[#7E7E7E] mt-1 text-sm font-poppins-400">{profileEmail}</p>
                     </div>

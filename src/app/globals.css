@@ -51,7 +51,6 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
@@ -87,6 +86,11 @@
   --landing-button: #1f5d57;
   --landing-button-hover: #184945;
   --landing-text-muted: #484848;
+
+  --color-heading: #113c38;
+  --color-text-dark: #1e2b28;
+  --color-border-subtle: #e8f0ee;
+  --color-surface-tint: #f0f9f7;
 }
 
 .dark {
@@ -134,6 +138,11 @@
   --landing-button: #1f5d57;
   --landing-button-hover: #184945;
   --landing-text-muted: #484848;
+
+  --color-heading: #113c38;
+  --color-text-dark: #1e2b28;
+  --color-border-subtle: #e8f0ee;
+  --color-surface-tint: #f0f9f7;
 }
 
 @layer base {
@@ -179,6 +188,24 @@
   }
   .hover\:bg-landing-button-hover:hover {
     background-color: var(--landing-button-hover);
+  }
+  .text-heading {
+    color: var(--color-heading);
+  }
+  .text-dark {
+    color: var(--color-text-dark);
+  }
+  .border-subtle {
+    border-color: var(--color-border-subtle);
+  }
+  .bg-surface-tint {
+    background-color: var(--color-surface-tint);
+  }
+  .hover\:bg-surface-tint:hover {
+    background-color: var(--color-surface-tint);
+  }
+  .border-secondary {
+    border-color: var(--secondary);
   }
   .font-poppins-400 {
     font-family: var(--font-poppins);
