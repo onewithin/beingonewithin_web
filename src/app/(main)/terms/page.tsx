@@ -1,44 +1,61 @@
 import Link from 'next/link'
-import { ChevronLeft, FileText } from 'lucide-react'
+import { ChevronLeft, FileText, ShieldCheck } from 'lucide-react'
+import { getPolicyAction } from '@/lib/actions/profile'
+import { PolicySection, EmptySection } from './_components/PolicySection'
 
-export default function TermsPage() {
+export default async function TermsPage() {
+    const [privacyResult, termsResult] = await Promise.all([
+        getPolicyAction(1),
+        getPolicyAction(2),
+    ])
+
     return (
-        <div className="min-h-screen bg-[#F8FBFA] px-4 py-5">
-            <div className="w-full md:max-w-[640px] mx-auto">
-                <div className="flex items-center gap-2 mb-5">
+        <div className="min-h-screen bg-mint-to-white px-4 py-5">
+            <div className=" w-full md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] 2xl:max-w-[1200px] mx-auto space-y-5">
+
+                {/* Header */}
+                <div className="flex items-center gap-2">
                     <Link
                         href="/profile"
-                        className="bg-white p-1 rounded-lg border border-[#EDEDED]"
+                        className="bg-white p-1 rounded-lg border border-subtle"
                         aria-label="Back to profile"
                     >
-                        <ChevronLeft className="h-5 w-5 text-[#1F5D57]" />
+                        <ChevronLeft className="h-5 w-5 text-secondary" />
                     </Link>
-                    <h1 className="text-[#113C38] text-xl font-poppins-600">Terms and Privacy</h1>
+                    <h1 className="text-heading text-[1rem] font-poppins-600">Terms &amp; Privacy</h1>
                 </div>
 
-                <div className="bg-white border border-[#E8F0EE] rounded-2xl shadow-sm p-5 space-y-4">
-                    <div className="flex items-start gap-3">
-                        <FileText className="h-5 w-5 text-[#1F5D57] mt-1" />
-                        <p className="text-sm text-[#1E2B28]">
-                            By using Prana, you agree to our product terms, content policy, and privacy practices.
-                        </p>
-                    </div>
+                {/* Terms & Conditions */}
+                {termsResult.success && termsResult.data ? (
+                    <PolicySection
+                        icon={<FileText className="h-5 w-5" />}
+                        title="Terms &amp; Conditions"
+                        content={termsResult.data.content}
+                    />
+                ) : (
+                    <EmptySection
+                        title="Terms &amp; Conditions"
+                        message={termsResult.message}
+                    />
+                )}
 
-                    <div className="rounded-xl border border-[#E8F0EE] p-4">
-                        <p className="text-sm font-poppins-600 text-[#1E2B28]">Data and Privacy</p>
-                        <p className="text-sm text-[#6D7A76] mt-1">
-                            We process your profile and app activity to personalize meditations and recommendations.
-                        </p>
-                    </div>
 
-                    <div className="rounded-xl border border-[#E8F0EE] p-4">
-                        <p className="text-sm font-poppins-600 text-[#1E2B28]">Support and Requests</p>
-                        <p className="text-sm text-[#6D7A76] mt-1">
-                            For legal inquiries or data requests, contact support@prana.app.
-                        </p>
-                    </div>
-                </div>
+                {/* Privacy Policy */}
+                {privacyResult.success && privacyResult.data ? (
+                    <PolicySection
+                        icon={<ShieldCheck className="h-5 w-5" />}
+                        title="Privacy Policy"
+                        content={privacyResult.data.content}
+                    />
+                ) : (
+                    <EmptySection
+                        title="Privacy Policy"
+                        message={privacyResult.message}
+                    />
+                )}
+
             </div>
         </div>
     )
 }
+

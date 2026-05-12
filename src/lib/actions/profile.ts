@@ -322,3 +322,49 @@ export async function updateProfilePhotoAction(
     return { success: false, message: "Network error. Please try again." };
   }
 }
+
+export type PolicyDocument = {
+  id: string;
+  type: number;
+  content: string;
+  active: boolean;
+  updatedAt: string;
+};
+
+export async function getPolicyAction(
+  type: 1 | 2,
+): Promise<{ success: boolean; data: PolicyDocument | null; message: string }> {
+  const { token } = await getAuthContext();
+
+  if (!token) {
+    return { success: false, data: null, message: "Not authenticated." };
+  }
+
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/privacy-policy/${type}`, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const json = (await response.json().catch(() => null)) as {
+      message?: string;
+      data?: PolicyDocument;
+    } | null;
+
+    if (!response.ok || !json?.data) {
+      return {
+        success: false,
+        data: null,
+        message: json?.message || "Policy not available.",
+      };
+    }
+
+    return { success: true, data: json.data, message: "Loaded." };
+  } catch {
+    return { success: false, data: null, message: "Network error." };
+  }
+}
