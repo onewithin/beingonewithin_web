@@ -1,0 +1,33 @@
+{
+    "name": "BeingOneWithin – Guided Meditation & Mindfulness",
+    "short_name": "BeingOneWithin",
+    "description": "Guided meditations, breathwork, and daily mindfulness practices for real life.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#ecf9ef",
+    "orientation": "portrait",
+    "categories": [
+        "health",
+        "lifestyle",
+        "wellness"
+    ],
+    "lang": "en",
+    "icons": [
+        {
+            "src": "/icons/logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshots/home.jpg",
+            "sizes": "1080x1920",
+            "type": "image/jpeg",
+            "label": "Home screen of BeingOneWithin"
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}
