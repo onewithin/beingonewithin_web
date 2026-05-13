@@ -10,6 +10,7 @@ interface EmailFormProps {
     error?: string
     onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
     isLoading?: boolean
+    submitDisabled?: boolean
     submitLabel?: string
     showSocialAuth?: boolean
     onGoogleClick?: () => void
@@ -43,6 +44,7 @@ function EmailForm({
     error,
     onSubmit,
     isLoading = false,
+    submitDisabled = false,
     submitLabel = 'Log in',
     showSocialAuth = false,
     onGoogleClick,
@@ -55,7 +57,7 @@ function EmailForm({
     return (
         <div className="font-poppins-400 font-normal p-7 lg:p-0 flex w-full flex-col justify-center items-center lg:block">
             <h1 className="text-[28px] sm:text-[32px] leading-[34px] sm:leading-[38px] max-w-[400px] text-primary tracking-normal text-center lg:text-left">
-                Let's get you set up
+                {submitLabel === "Register" ? "Let us know where to send your calm" : "Let's get you set up"}
             </h1>
             <p className='text-[#000000] my-2 text-[15px] sm:text-[16px] text-center lg:text-left'>
                 Sign in to your account using Google, Apple, or verify your email to get started.
@@ -80,7 +82,7 @@ function EmailForm({
                         <Button
                             type='submit'
                             className='h-12 mt-4 bg-[#1f5d57] hover:bg-[#184945] text-white font-poppins-600 text-[15px] rounded-xl w-full md:w-[335px]'
-                            disabled={isLoading}
+                            disabled={isLoading || submitDisabled}
                         >
                             {isLoading ? 'Sending code…' : submitLabel}
                             {!isLoading && showSubmitArrow && <MoveRight className='ml-2 !w-4 !h-4' />}

@@ -1,34 +1,23 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { checkEmailAction, loginAction, resendOtpAction, verifyOtpAction } from '@/lib/actions/auth'
+import {
+    checkEmailAction,
+    registerAction,
+    resendOtpAction,
+    verifyOtpAction,
+} from '@/lib/actions/auth'
 import EmailForm from '@/app/(onboarding)/introduction/_components/email-form'
 import Link from 'next/link'
 import QuestionCard from '@/app/(onboarding)/introduction/_components/questionCard'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 
-function MeditationIcon() {
-    return (
-        <svg viewBox="0 0 80 80" width="80" height="80" fill="none" aria-hidden="true">
-            {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => (
-                <line key={deg} x1="40" y1="10" x2="40" y2="4" stroke="#1f5d57" strokeWidth="2.5" strokeLinecap="round" transform={`rotate(${deg} 40 40)`} />
-            ))}
-            <circle cx="40" cy="40" r="22" stroke="#1f5d57" strokeWidth="2.5" />
-            <circle cx="40" cy="27" r="4.5" stroke="#1f5d57" strokeWidth="2.5" />
-            <path d="M33 50 Q40 42 47 50" stroke="#1f5d57" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            <path d="M27 50 Q33 46 40 48 Q47 46 53 50" stroke="#1f5d57" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-        </svg>
-    )
-}
-
-// ── Main sign-in page ─────────────────────────────────────────────────────────
-
-export default function SignIn() {
+export default function RegisterPage() {
     const router = useRouter()
     const [email, setEmail] = useState('')
+    const [agreedToTerms, setAgreedToTerms] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isOtpStep, setIsOtpStep] = useState(false)
     const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
@@ -47,6 +36,11 @@ export default function SignIn() {
             return
         }
 
+        if (!agreedToTerms) {
+            setError('Please agree to the Terms and Conditions to continue.')
+            return
+        }
+
         setIsLoading(true)
 
         const { exists, error: checkError } = await checkEmailAction(email)
@@ -56,13 +50,14 @@ export default function SignIn() {
             return
         }
 
-        if (!exists) {
-            setError('No account found. New here? Begin your journey below.')
+        if (exists) {
+            setError('Account already exists. Please sign in instead.')
             setIsLoading(false)
             return
         }
 
-        const result = await loginAction(email)
+        const name = typeof window !== 'undefined' ? sessionStorage.getItem('prana_name') || '' : ''
+        const result = await registerAction(email, name)
         setIsLoading(false)
 
         if (!result.success) {
@@ -73,14 +68,6 @@ export default function SignIn() {
         setIsOtpStep(true)
         setOtpMessage('A 6-digit code has been sent to your email.')
         setOtpDigits(['', '', '', '', '', ''])
-    }
-
-    const handleGoogleClick = () => {
-        setError('Google login is coming soon.')
-    }
-
-    const handleAppleClick = () => {
-        setError('Apple login is coming soon.')
     }
 
     const handleOtpChange = (index: number, value: string) => {
@@ -128,11 +115,6 @@ export default function SignIn() {
             return
         }
 
-        if (result.isNewUser) {
-            router.replace('/onboarding-setup')
-            return
-        }
-
         router.replace('/home')
     }
 
@@ -160,8 +142,6 @@ export default function SignIn() {
             style={{ background: 'linear-gradient(135deg, #d8f0e3 0%, #edf7f0 40%, #f8fbfa 100%)' }}
         >
             <div className="w-full md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] 2xl:max-w-[1200px] flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-10 lg:gap-16">
-
-                {/* ── Left: form ─────────────────────────────────────────── */}
                 <div className="w-full max-w-[480px] mx-auto lg:mx-0 flex flex-col gap-6">
                     {!isOtpStep ? (
                         <EmailForm
@@ -174,17 +154,44 @@ export default function SignIn() {
                             error={error}
                             onSubmit={handleSubmit}
                             isLoading={isLoading}
-                            submitLabel="Log in"
-                            showSocialAuth
-                            onGoogleClick={handleGoogleClick}
-                            onAppleClick={handleAppleClick}
+                            submitDisabled={!agreedToTerms}
+                            submitLabel="Register"
                             footer={(
-                                <p className="font-poppins-400 text-[0.8125rem] text-center lg:text-left">
-                                    Don't have an account?{' '}
-                                    <Link href="/personal-info" className="font-poppins-600 text-secondary underline">
-                                        Sign up
-                                    </Link>
-                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex items-start gap-2 text-[0.8125rem] text-[#484848] font-poppins-400">
+                                        <input
+                                            id="termsAgreement"
+                                            type="checkbox"
+                                            checked={agreedToTerms}
+                                            onChange={(e) => {
+                                                setAgreedToTerms(e.target.checked)
+                                                if (e.target.checked && error.includes('Terms and Conditions')) {
+                                                    setError('')
+                                                }
+                                            }}
+                                            className="mt-0.5 h-4 w-4 accent-[#1F5D57]"
+                                        />
+                                        <span>
+                                            <label htmlFor="termsAgreement" className="cursor-pointer">
+                                                I agree with the{' '}
+                                            </label>
+                                            <Link
+                                                href="/terms-and-conditions"
+                                                className="font-poppins-600 text-secondary underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Terms and Conditions
+                                            </Link>
+                                        </span>
+                                    </div>
+
+                                    <p className="font-poppins-400 text-[0.8125rem] text-center lg:text-left">
+                                        Already have an account?{' '}
+                                        <Link href="/sign-in" className="font-poppins-600 text-secondary underline">
+                                            Sign in
+                                        </Link>
+                                    </p>
+                                </div>
                             )}
                         />
                     ) : (
@@ -253,7 +260,6 @@ export default function SignIn() {
                     )}
                 </div>
 
-                {/* ── Right: QuestionCard ─────────────────────────────────── */}
                 <div className="hidden lg:flex justify-center">
                     <QuestionCard
                         title="Calm Voices That Truly Soothe"

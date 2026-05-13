@@ -28,6 +28,7 @@ export type OnboardingOption = {
 export type OnboardingQuestion = {
   id: string;
   question: string;
+  createdAt?: string;
   options: OnboardingOption[];
 };
 
@@ -274,10 +275,22 @@ export async function getOnboardingQuestionsAction(): Promise<{
     };
   }
 
+  const sortedQuestions = [...(response.data?.data || [])].sort((a, b) => {
+    const aTime = a.createdAt ? Date.parse(a.createdAt) : Number.NaN;
+    const bTime = b.createdAt ? Date.parse(b.createdAt) : Number.NaN;
+
+    if (!Number.isNaN(aTime) && !Number.isNaN(bTime)) {
+      return aTime - bTime;
+    }
+
+    // Fallback to deterministic id ordering when createdAt is missing.
+    return a.id.localeCompare(b.id);
+  });
+
   return {
     success: true,
     message: "Questions loaded successfully.",
-    questions: response.data?.data || [],
+    questions: sortedQuestions,
   };
 }
 
