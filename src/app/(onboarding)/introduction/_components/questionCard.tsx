@@ -33,10 +33,10 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     return (
         <Card className={`w-full lg:w-[350px] bg-[#DDF3E5] rounded-[30px] ${className}`}>
             <CardContent>
-                <div className='w-[100px] h-[100px] my-2 border flex items-center justify-center'>
+                <div className='w-[100px] h-[100px] my-2 border flex items-center justify-center mx-auto'>
                     {image}
                 </div>
-                <div>
+                <div className='text-center'>
                     <p className='font-poppins-600 text-[#1F5D57] text-[24px]'>{title}</p>
                     <p className='font-poppins-400 text-[#1F5D57] text-[16px]'>{description}</p>
                 </div>

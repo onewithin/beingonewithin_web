@@ -4,10 +4,12 @@ import React, { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     checkEmailAction,
+    oauthAuthenticateAction,
     registerAction,
     resendOtpAction,
     verifyOtpAction,
 } from '@/lib/actions/auth'
+import { authenticateWithApple, authenticateWithGoogle, SocialProvider } from '@/lib/client/social-auth'
 import EmailForm from '@/app/(onboarding)/introduction/_components/email-form'
 import Link from 'next/link'
 import QuestionCard from '@/app/(onboarding)/introduction/_components/questionCard'
@@ -23,6 +25,7 @@ export default function RegisterPage() {
     const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
     const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
     const [isResendingOtp, setIsResendingOtp] = useState(false)
+    const [socialAuthLoadingProvider, setSocialAuthLoadingProvider] = useState<SocialProvider | null>(null)
     const [otpMessage, setOtpMessage] = useState('')
     const [error, setError] = useState('')
     const otpInputs = useRef<(HTMLInputElement | null)[]>([])
@@ -136,6 +139,100 @@ export default function RegisterPage() {
         setOtpMessage('A new code has been sent to your email.')
     }
 
+    const handleGoogleClick = async () => {
+        if (socialAuthLoadingProvider) return
+        if (!agreedToTerms) {
+            setError('Please agree to the Terms and Conditions to continue.')
+            return
+        }
+
+        setError('')
+        setSocialAuthLoadingProvider('google')
+
+        try {
+            const identity = await authenticateWithGoogle()
+            const { exists } = await checkEmailAction(identity.email)
+
+            if (exists) {
+                setError('User already exists. Please try to log in.')
+                return
+            }
+
+            const result = await oauthAuthenticateAction({
+                provider: 'google',
+                idToken: identity.idToken,
+                email: identity.email,
+                name: identity.name,
+                image: identity.image,
+                isLogin: false,
+            })
+
+            if (!result.success) {
+                setError(result.message)
+                return
+            }
+
+            if (result.isNewUser) {
+                router.replace('/onboarding-setup')
+                return
+            }
+
+            router.replace('/home')
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Google sign-up failed. Please try again.'
+            setError(message)
+        } finally {
+            setSocialAuthLoadingProvider(null)
+        }
+    }
+
+    const handleAppleClick = async () => {
+        if (socialAuthLoadingProvider) return
+        if (!agreedToTerms) {
+            setError('Please agree to the Terms and Conditions to continue.')
+            return
+        }
+
+        setError('')
+        setSocialAuthLoadingProvider('apple')
+
+        try {
+            const identity = await authenticateWithApple()
+            const { exists } = await checkEmailAction(identity.email)
+
+            if (exists) {
+                setError('User already exists. Please try to log in.')
+                return
+            }
+
+            const result = await oauthAuthenticateAction({
+                provider: 'apple',
+                idToken: identity.idToken,
+                email: identity.email,
+                name: identity.name,
+                image: identity.image,
+                isLogin: false,
+            })
+
+            if (!result.success) {
+                setError(result.message)
+                return
+            }
+
+            if (result.isNewUser) {
+                router.replace('/onboarding-setup')
+                return
+            }
+
+            router.replace('/home')
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Apple sign-up failed. Please try again.'
+            setError(message)
+        } finally {
+            setSocialAuthLoadingProvider(null)
+        }
+    }
+
     return (
         <div
             className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-6 sm:py-10"
@@ -156,6 +253,10 @@ export default function RegisterPage() {
                             isLoading={isLoading}
                             submitDisabled={!agreedToTerms}
                             submitLabel="Register"
+                            showSocialAuth
+                            socialAuthLoadingProvider={socialAuthLoadingProvider}
+                            onGoogleClick={handleGoogleClick}
+                            onAppleClick={handleAppleClick}
                             footer={(
                                 <div className="space-y-3">
                                     <div className="flex items-start gap-2 text-[0.8125rem] text-[#484848] font-poppins-400">

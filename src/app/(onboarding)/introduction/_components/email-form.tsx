@@ -15,6 +15,7 @@ interface EmailFormProps {
     showSocialAuth?: boolean
     onGoogleClick?: () => void
     onAppleClick?: () => void
+    socialAuthLoadingProvider?: 'google' | 'apple' | null
     footer?: React.ReactNode
     showSubmitArrow?: boolean
 }
@@ -49,6 +50,7 @@ function EmailForm({
     showSocialAuth = false,
     onGoogleClick,
     onAppleClick,
+    socialAuthLoadingProvider = null,
     footer,
     showSubmitArrow = true,
 }: EmailFormProps) {
@@ -118,18 +120,20 @@ function EmailForm({
                                 type="button"
                                 className="flex items-center justify-center gap-3 h-12 w-full rounded-xl border border-[#d0e8de] bg-white hover:bg-[#f3faf6] font-poppins-600 text-[15px] text-[#1e2b28] transition-colors"
                                 onClick={onGoogleClick}
+                                disabled={Boolean(socialAuthLoadingProvider)}
                             >
                                 <GoogleIcon />
-                                Continue with Google
+                                {socialAuthLoadingProvider === 'google' ? 'Continuing…' : 'Continue with Google'}
                             </button>
 
                             <button
                                 type="button"
                                 className="flex items-center justify-center gap-3 h-12 w-full rounded-xl border border-[#d0e8de] bg-white hover:bg-[#f3faf6] font-poppins-600 text-[15px] text-[#1e2b28] transition-colors"
                                 onClick={onAppleClick}
+                                disabled={Boolean(socialAuthLoadingProvider)}
                             >
                                 <AppleIcon />
-                                Continue with Apple
+                                {socialAuthLoadingProvider === 'apple' ? 'Continuing…' : 'Continue with Apple'}
                             </button>
                         </div>
                     </>

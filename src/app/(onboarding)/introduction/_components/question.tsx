@@ -24,15 +24,15 @@ const Question: React.FC<ReusableQuestionProps> = ({
     onToggle,
 }) => {
     return (
-        <div className="w-full lg:w-1/2">
+        <div className="w-full lg:w-1/2 flex flex-col items-center lg:items-start text-center lg:text-left">
             <p className="font-sniglet-400 text-[16px] sm:text-[18px] text-[#484848] my-2 sm:my-3">
                 {greeting}
             </p>
-            <div className="font-poppins-400 font-normal">
+            <div className="font-poppins-400 font-normal w-full">
                 <h1 className="text-[24px] sm:text-[28px] lg:text-[32px] leading-[30px] sm:leading-[34px] lg:leading-[38px] max-w-[400px] text-primary tracking-normal">
                     {question}
                 </h1>
-                <div className="my-5 sm:my-8 text-[#484848] space-y-3 sm:space-y-4">
+                <div className="my-5 sm:my-8 text-[#484848] space-y-3 sm:space-y-4 w-full flex flex-col items-center lg:items-start">
                     {options.map(({ id, text, emoji }) => (
                         <Button
                             key={id}
@@ -40,7 +40,7 @@ const Question: React.FC<ReusableQuestionProps> = ({
                             variant="ghost"
                             onClick={() => onToggle?.(id)}
                             aria-pressed={values.includes(id)}
-                            className="h-auto w-full justify-start px-0 py-0 hover:bg-transparent"
+                            className="h-auto w-full max-w-[420px] justify-start px-0 py-0 hover:bg-transparent"
                         >
                             <span className="flex items-start gap-3 text-left">
                                 <span className="mt-1 h-4 w-4 min-h-4 min-w-4 shrink-0 rounded-full border-2 border-secondary flex items-center justify-center">

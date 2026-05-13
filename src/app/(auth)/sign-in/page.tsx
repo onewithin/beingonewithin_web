@@ -3,7 +3,8 @@
 import React, { useState } from 'react'
 import { useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { checkEmailAction, loginAction, resendOtpAction, verifyOtpAction } from '@/lib/actions/auth'
+import { checkEmailAction, loginAction, oauthAuthenticateAction, resendOtpAction, verifyOtpAction } from '@/lib/actions/auth'
+import { authenticateWithApple, authenticateWithGoogle, SocialProvider } from '@/lib/client/social-auth'
 import EmailForm from '@/app/(onboarding)/introduction/_components/email-form'
 import Link from 'next/link'
 import QuestionCard from '@/app/(onboarding)/introduction/_components/questionCard'
@@ -34,6 +35,7 @@ export default function SignIn() {
     const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', ''])
     const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
     const [isResendingOtp, setIsResendingOtp] = useState(false)
+    const [socialAuthLoadingProvider, setSocialAuthLoadingProvider] = useState<SocialProvider | null>(null)
     const [otpMessage, setOtpMessage] = useState('')
     const [error, setError] = useState('')
     const otpInputs = useRef<(HTMLInputElement | null)[]>([])
@@ -75,12 +77,66 @@ export default function SignIn() {
         setOtpDigits(['', '', '', '', '', ''])
     }
 
-    const handleGoogleClick = () => {
-        setError('Google login is coming soon.')
+    const handleGoogleClick = async () => {
+        if (socialAuthLoadingProvider) return
+
+        setError('')
+        setSocialAuthLoadingProvider('google')
+
+        try {
+            const identity = await authenticateWithGoogle()
+            const result = await oauthAuthenticateAction({
+                provider: 'google',
+                idToken: identity.idToken,
+                email: identity.email,
+                name: identity.name,
+                image: identity.image,
+                isLogin: true,
+            })
+
+            if (!result.success) {
+                setError(result.message)
+                return
+            }
+
+            router.replace('/home')
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Google sign-in failed. Please try again.'
+            setError(message)
+        } finally {
+            setSocialAuthLoadingProvider(null)
+        }
     }
 
-    const handleAppleClick = () => {
-        setError('Apple login is coming soon.')
+    const handleAppleClick = async () => {
+        if (socialAuthLoadingProvider) return
+
+        setError('')
+        setSocialAuthLoadingProvider('apple')
+
+        try {
+            const identity = await authenticateWithApple()
+            const result = await oauthAuthenticateAction({
+                provider: 'apple',
+                idToken: identity.idToken,
+                email: identity.email,
+                name: identity.name,
+                image: identity.image,
+                isLogin: true,
+            })
+
+            if (!result.success) {
+                setError(result.message)
+                return
+            }
+
+            router.replace('/home')
+        } catch (e) {
+            const message = e instanceof Error ? e.message : 'Apple sign-in failed. Please try again.'
+            setError(message)
+        } finally {
+            setSocialAuthLoadingProvider(null)
+        }
     }
 
     const handleOtpChange = (index: number, value: string) => {
@@ -176,6 +232,7 @@ export default function SignIn() {
                             isLoading={isLoading}
                             submitLabel="Log in"
                             showSocialAuth
+                            socialAuthLoadingProvider={socialAuthLoadingProvider}
                             onGoogleClick={handleGoogleClick}
                             onAppleClick={handleAppleClick}
                             footer={(

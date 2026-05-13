@@ -39,6 +39,24 @@ type VerifyOtpActionResult = {
   onboardingSynced?: boolean;
 };
 
+type SocialProvider = "google" | "apple";
+
+type OAuthAuthActionInput = {
+  provider: SocialProvider;
+  idToken: string;
+  email: string;
+  name?: string;
+  image?: string;
+  isLogin: boolean;
+};
+
+type OAuthAuthActionResult = {
+  success: boolean;
+  message: string;
+  isNewUser?: boolean;
+  onboardingSynced?: boolean;
+};
+
 async function attemptTokenRefresh(): Promise<string | null> {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refresh_token")?.value;
@@ -448,6 +466,96 @@ export async function loginAction(
     };
   } catch {
     return { success: false, message: "Network error. Please try again." };
+  }
+}
+
+/** Authenticate with social providers (Google / Apple) and set auth cookies */
+export async function oauthAuthenticateAction(
+  input: OAuthAuthActionInput,
+): Promise<OAuthAuthActionResult> {
+  const normalisedEmail = input.email.toLowerCase().trim();
+  if (!normalisedEmail || !isValidEmail(normalisedEmail)) {
+    return {
+      success: false,
+      message: "Provider did not return a valid email.",
+    };
+  }
+
+  if (!input.idToken.trim()) {
+    return { success: false, message: "Missing social auth token." };
+  }
+
+  const method = input.provider === "google" ? 2 : 3;
+
+  try {
+    const response = await callBackend<{
+      success?: boolean;
+      message?: string;
+      token?: string;
+      refreshToken?: string;
+      register?: boolean;
+    }>("/api/user/register", {
+      method: "POST",
+      body: JSON.stringify({
+        email: normalisedEmail,
+        name: input.name?.trim() || undefined,
+        profilePicture: input.image,
+        oauth: "true",
+        method,
+        device: "web",
+        isLogin: input.isLogin,
+        idToken: input.idToken,
+      }),
+    });
+
+    if (!response.ok || !response.data?.success || !response.data.token) {
+      return {
+        success: false,
+        message: response.data?.message || "Social sign-in failed.",
+      };
+    }
+
+    const cookieStore = await cookies();
+
+    cookieStore.set("auth_token", response.data.token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+      path: "/",
+    });
+
+    if (response.data.refreshToken) {
+      cookieStore.set("refresh_token", response.data.refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS,
+        path: "/",
+      });
+    }
+
+    const isNewUser = Boolean(response.data.register);
+    const onboardingSynced = isNewUser
+      ? await syncOnboardingTags(response.data.token)
+      : true;
+
+    // Social auth does not use OTP flow.
+    cookieStore.delete("otp_email");
+    cookieStore.delete("otp_is_new");
+    cookieStore.delete("otp_flow");
+
+    return {
+      success: true,
+      message: response.data.message || "Authenticated successfully.",
+      isNewUser,
+      onboardingSynced,
+    };
+  } catch {
+    return {
+      success: false,
+      message: "Network error. Please try again.",
+    };
   }
 }
 

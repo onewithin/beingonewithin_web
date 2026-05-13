@@ -93,7 +93,7 @@ export default function IntroductionClient({ questions }: IntroductionClientProp
     const currentCard = ONBOARDING_CARDS[step % ONBOARDING_CARDS.length]
 
     return (
-        <div className="min-h-screen bg-mint-to-white relative overflow-y-auto">
+        <div className="min-h-screen bg-mint-to-white relative overflow-y-auto flex items-center">
             <Image
                 src="/icons/boatstreeing.png"
                 height={400}
@@ -101,8 +101,8 @@ export default function IntroductionClient({ questions }: IntroductionClientProp
                 alt="spiritual"
                 className="absolute top-0 left-1/2 -translate-x-1/2 pointer-events-none"
             />
-            <div className="z-10 p-4 pt-16 md:pt-6 md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] 2xl:max-w-[1200px] w-full mx-auto flex flex-col relative">
-                <div className="w-full flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 lg:gap-10">
+            <div className="z-10 p-4 py-16 md:py-10 mx-auto md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] 2xl:max-w-[1200px] w-full flex flex-col items-start relative">
+                <div className="w-full flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
                     {!isFinalStep ? (
                         <Question
                             greeting="A few quick questions"
@@ -125,7 +125,7 @@ export default function IntroductionClient({ questions }: IntroductionClientProp
                             }}
                         />
                     ) : (
-                        <div className="w-full lg:max-w-[480px] p-7 lg:p-0">
+                        <div className="w-full lg:max-w-[480px] p-7 lg:p-0 text-left">
                             <h1 className="text-[28px] sm:text-[32px] leading-[34px] sm:leading-[38px] max-w-[400px] text-primary tracking-normal text-center lg:text-left font-poppins-600">
                                 You&apos;re all set
                             </h1>
@@ -153,7 +153,7 @@ export default function IntroductionClient({ questions }: IntroductionClientProp
                     </div>
                 </div>
 
-                <div className="mt-4 lg:hidden">
+                <div className="mt-4 lg:hidden w-full">
                     <QuestionCard
                         title={currentCard.title}
                         description={currentCard.description}
