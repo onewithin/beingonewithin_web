@@ -1,11 +1,26 @@
 import { cookies } from "next/headers";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const THIRTY_MINUTES_SECONDS = 1800;
+
+type BackendGetOptions = {
+  cache?: RequestCache;
+  revalidateSeconds?: number;
+};
 
 export type HomeCategory = {
   id: string;
   name: string;
   color?: string | null;
+  icon?: string;
+  backgroundImage?: string | null;
+};
+
+export type HomeSubcategory = {
+  id: string | number;
+  name: string;
+  color?: string | null;
+  categoryId?: string | number;
 };
 
 export type HomeTag = {
@@ -19,9 +34,23 @@ export type HomeMeditation = {
   duration?: number | string | null;
   thumbnail?: string | null;
   isLiked?: boolean;
+  link?: string | null;
+  subcategoryId?: string | number | null;
   category?: {
+    id?: string | null;
     name?: string | null;
   } | null;
+  subcategory?: {
+    id?: string | null;
+    name?: string | null;
+  } | null;
+};
+
+export type PaginationData = {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 };
 
 export type HomeThought = {
@@ -111,15 +140,22 @@ export async function getAuthContext(): Promise<{
 export async function backendGet<T>(
   path: string,
   token: string,
+  options?: BackendGetOptions,
 ): Promise<T | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}${path}`, {
+    const fetchOptions: RequestInit & { next?: { revalidate: number } } = {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      cache: "no-store",
-    });
+      cache: options?.cache ?? "no-store",
+    };
+
+    if (options?.revalidateSeconds !== undefined) {
+      fetchOptions.next = { revalidate: options.revalidateSeconds };
+    }
+
+    const response = await fetch(`${BACKEND_URL}${path}`, fetchOptions);
 
     if (!response.ok) {
       return null;
@@ -282,11 +318,107 @@ export async function getLikedMeditationsData(
     }));
 }
 
+export async function getAllCategories(): Promise<HomeCategory[]> {
+  const { token } = await getAuthContext();
+  if (!token) return [];
+
+  const response = await backendGet<HomeCategory[]>("/api/category", token, {
+    cache: "force-cache",
+    revalidateSeconds: THIRTY_MINUTES_SECONDS,
+  });
+  return Array.isArray(response) ? response : [];
+}
+
+export async function getCategoryDetailsData(categoryId: string): Promise<{
+  category: HomeCategory | null;
+  subcategories: HomeSubcategory[];
+}> {
+  const { token } = await getAuthContext();
+  if (!token) {
+    return { category: null, subcategories: [] };
+  }
+
+  const [categoriesResponse, subcategoriesResponse] = await Promise.all([
+    backendGet<HomeCategory[]>("/api/category", token, {
+      cache: "force-cache",
+      revalidateSeconds: THIRTY_MINUTES_SECONDS,
+    }),
+    backendGet<HomeSubcategory[]>(
+      `/api/subcategory?categoryId=${encodeURIComponent(categoryId)}`,
+      token,
+      {
+        cache: "force-cache",
+        revalidateSeconds: THIRTY_MINUTES_SECONDS,
+      },
+    ),
+  ]);
+
+  const categories = Array.isArray(categoriesResponse)
+    ? categoriesResponse
+    : [];
+  const subcategories = Array.isArray(subcategoriesResponse)
+    ? subcategoriesResponse
+    : [];
+
+  return {
+    category: categories.find((item) => item.id === categoryId) || null,
+    subcategories,
+  };
+}
+
+export async function getSubcategoryMeditationsPaginated(
+  subcategoryId: string,
+  limit = 10,
+  page = 1,
+): Promise<{
+  data: HomeMeditation[];
+  pagination: PaginationData;
+}> {
+  const { token } = await getAuthContext();
+  if (!token) {
+    return {
+      data: [],
+      pagination: { total: 0, page, limit, totalPages: 0 },
+    };
+  }
+
+  const response = await backendGet<{
+    data?: HomeMeditation[];
+    pagination?: PaginationData;
+  }>(
+    `/api/meditation/subcategory/paginated?subcategoryId=${encodeURIComponent(subcategoryId)}&limit=${limit}&page=${page}`,
+    token,
+    {
+      cache: "force-cache",
+      revalidateSeconds: THIRTY_MINUTES_SECONDS,
+    },
+  );
+
+  const data = Array.isArray(response?.data) ? response.data : [];
+  const pagination = response?.pagination || {
+    total: data.length,
+    page,
+    limit,
+    totalPages: 1,
+  };
+
+  return {
+    data: data.map((meditation) => ({
+      ...meditation,
+      duration: normalizeDuration(meditation.duration),
+    })),
+    pagination,
+  };
+}
+
 export async function getProfileData(): Promise<ProfileUser | null> {
   const { token, userId } = await getAuthContext();
   if (!token || !userId) return null;
 
-  const response = await backendGet<ProfileResponse>(`/api/user/${userId}`, token);
+  const response = await backendGet<ProfileResponse>(
+    `/api/user/${userId}`,
+    token,
+  );
   const user = response?.user;
 
   if (!user?.id) {
@@ -301,7 +433,9 @@ export async function getProfileData(): Promise<ProfileUser | null> {
       : null;
 
   const rawSubscriptionType =
-    typeof user.subscriptionType === "string" ? user.subscriptionType.trim() : "";
+    typeof user.subscriptionType === "string"
+      ? user.subscriptionType.trim()
+      : "";
   const isSubscribed = Boolean(user.isSubscribed);
   const planLabel = rawSubscriptionType
     ? `${rawSubscriptionType} Plan`

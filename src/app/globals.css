@@ -37,10 +37,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 0.25rem);
+  --radius-md: calc(var(--radius) - 0.125rem);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 0.25rem);
 }
 
 :root {
@@ -171,6 +171,15 @@
   .bg-secondary {
     background-color: var(--secondary);
   }
+  .text-color {
+    color: var(--text-color);
+  }
+  .text-primary-foreground {
+    color: var(--primary-foreground);
+  }
+  .text-secondary-foreground {
+    color: var(--secondary-foreground);
+  }
   .bg-mint-to-white {
     background-image: var(--background-gradient);
   }
@@ -257,4 +266,20 @@
 /* Hide scrollbar for Firefox */
 .scrollbar-hide {
   scrollbar-width: none; /* Firefox */
+}
+
+/* Animation for SSE toast notifications */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
 }

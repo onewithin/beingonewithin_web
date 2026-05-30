@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Poppins, Sniglet } from "next/font/google";
 import Script from "next/script";
+import { AudioProvider } from "@/contexts/AudioContext";
 
 // ─── Fonts ───────────────────────────────────────────────────────────────────
 
@@ -257,7 +258,9 @@ export default function RootLayout({
       <body
         className={`${poppins.variable} ${sniglet.variable} antialiased bg-[radial-gradient(circle_at_top,_#ecf9ef_0%,_#ffffff_50%,_#f9fbfa_100%)] min-h-screen`}
       >
-        {children}
+        <AudioProvider>
+          {children}
+        </AudioProvider>
 
         {/*
           ── JSON-LD ─────────────────────────────────────────────────────────

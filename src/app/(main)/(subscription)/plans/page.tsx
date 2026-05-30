@@ -1,10 +1,38 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ChevronLeft, Home, Download, BookOpen, Heart, User, Headphones, Mic, Smartphone } from "lucide-react"
+import { Headphones, Mic, Smartphone } from "lucide-react"
 import Header from "./_components/header"
 import BottomNav from "@/components/bottomNav"
+import { getSubscriptionPlans, getSubscriptionStatus, SubscriptionPlan, Subscription } from "@/lib/actions/subscription"
+import PlanCard from "./_components/plan-card"
+import { redirect } from "next/navigation"
+import Link from "next/link"
+import SubscriptionSSEListener from "@/components/subscription-sse-listener"
 
-export default function Component() {
+export default async function SubscriptionPlansPage() {
+    // Check if user already has an active subscription
+    const statusResult = await getSubscriptionStatus();
+    const currentSubscription = statusResult.ok ? statusResult.data : null;
+
+    // If user has active subscription, redirect to status page
+    if (currentSubscription && currentSubscription.status === "ACTIVE") {
+        redirect("/subscription/status");
+    }
+
+    // Fetch available plans
+    const plansResult = await getSubscriptionPlans();
+
+    let plans: SubscriptionPlan[] = [];
+    if (plansResult.ok && plansResult.data) {
+        // Check if data is a Subscription object or array of plans
+        if (Array.isArray(plansResult.data)) {
+            plans = plansResult.data;
+        }
+    }
+
+    // Sort plans: monthly first, then yearly
+    const monthlyPlans = plans.filter(p => p.interval === "month");
+    const yearlyPlans = plans.filter(p => p.interval === "year");
+    const sortedPlans = [...monthlyPlans, ...yearlyPlans];
+
     return (
         <div className="min-h-screen  flex flex-col">
             <div className="bg-[#DDF3E5] p-4 rounded-b-[50px]">
@@ -29,7 +57,6 @@ export default function Component() {
                                     <Headphones className="w-5 h-5 text-[#1f5d57]" />
                                     <p className="text-[#1b1414]  leading-tight">
                                         Full Access to All
-
                                         Meditations
                                     </p>
                                 </div>
@@ -58,56 +85,44 @@ export default function Component() {
                 </div>
             </div>
             <div>
-                <div className="md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] mx-auto w-full mt-12 mb-6">
+                <div className="md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] mx-auto w-full mt-12 mb-6 px-4">
+                    {plans.length === 0 ? (
+                        <div className="text-center py-12">
+                            <p className="text-[#484848] font-poppins-400">
+                                No subscription plans available at the moment.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Pricing Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {sortedPlans.map((plan, index) => (
+                                    <PlanCard
+                                        key={plan.id}
+                                        plan={plan}
+                                        isMonthly={plan.interval === "month"}
+                                    />
+                                ))}
+                            </div>
 
-                    {/* Pricing Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Monthly Plan */}
-                        <Card className="bg-[#fef9c4] border-2 border-[#ff780b] rounded-2xl overflow-hidden">
-                            <CardContent className="p-6">
-                                <div className="text-center mb-6">
-                                    <h3 className="text-[#121212]  text-lg mb-4 font-poppins-600">Monthly Plan</h3>
-                                    <div className="mb-2 font-sniglet-400">
-                                        <span className="text-4xl text-[#ff780b] ">$4.79</span>
-                                        <span className="text-[#484848] text-lg ml-1">/ month</span>
-                                    </div>
-                                    <p className="text-[#484848] text-sm font-poppins-400">Most flexible</p>
+                            {currentSubscription && currentSubscription.status !== "ACTIVE" && (
+                                <div className="mt-6 text-center">
+                                    <Link
+                                        href="/subscription/status"
+                                        className="text-[#1f5d57] font-poppins-600 underline"
+                                    >
+                                        View your subscription status
+                                    </Link>
                                 </div>
-                                <Button className="w-full font-poppins-600 px-6 py-5 bg-[#ff780b] hover:bg-[#e6690a] text-white font-semibold  rounded-xl mb-4">
-                                    Subscribe Monthly
-                                </Button>
-                                <p className="text-[#484848] font-poppins-400 text-xs text-center leading-relaxed">
-                                    Cancel anytime. Billed via
-                                    <br />
-                                    your app store.
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        {/* Yearly Plan */}
-                        <Card className="bg-[#d8f6e0] border-2 border-[#04c03a] rounded-2xl overflow-hidden">
-                            <CardContent className="p-6">
-                                <div className="text-center mb-6">
-                                    <h3 className="text-[#121212]  text-lg mb-4 font-poppins-600">Yearly Plan</h3>
-                                    <div className="mb-2">
-                                        <span className="text-4xl font-sniglet-400 text-[#04c03a]">$49.99</span>
-                                        <span className="text-[#484848] text-lg ml-1">/ year</span>
-                                    </div>
-                                    <p className="text-[#484848] text-sm font-poppins-400">⭐ Best Value ⭐</p>
-                                </div>
-                                <Button className="w-full bg-[#04c03a] hover:bg-[#039933] p-5 font-poppins-600 text-white font-semibold py-3 rounded-xl mb-4">
-                                    Go Yearly - Save 35%
-                                </Button>
-                                <p className="text-[#484848] text-xs text-center leading-relaxed font-poppins-400">
-                                    Cancel anytime. Billed via
-                                    <br />
-                                    your app store.
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
+            
+            {/* Real-time subscription updates via SSE */}
+            <SubscriptionSSEListener />
+            
             <BottomNav activeTab="home" />
         </div >
     )
