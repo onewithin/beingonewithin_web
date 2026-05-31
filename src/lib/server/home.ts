@@ -29,6 +29,17 @@ export type HomeTag = {
   name: string;
 };
 
+export type TopicMeditationsData = {
+  topics: HomeTag[];
+  activeTopicId: string | null;
+  meditations: HomeMeditation[];
+};
+
+export type TopicMeditationsPage = {
+  data: HomeMeditation[];
+  hasMore: boolean;
+};
+
 export type HomeMeditation = {
   id: string;
   title: string;
@@ -62,12 +73,48 @@ export type HomeThought = {
   link?: string | null;
 };
 
+export type LibraryBadge = {
+  id: string;
+  label: string;
+  count: number;
+};
+
+type BackendPlaylistItem = {
+  id: string;
+  name?: string | null;
+  meditationCount?: number | null;
+  _count?: {
+    items?: number | null;
+  };
+};
+
+type BackendPlaylistDetailItem = {
+  meditation?: HomeMeditation | null;
+};
+
+type BackendPlaylistDetailResponse = {
+  data?: {
+    items?: BackendPlaylistDetailItem[];
+  };
+  pagination?: {
+    hasNextPage?: boolean;
+    totalPages?: number;
+    currentPage?: number;
+  };
+};
+
+export type LibraryPlaylistMeditationsPage = {
+  data: HomeMeditation[];
+  hasMore: boolean;
+};
+
 type HomeData = {
   greeting: string;
   todayThought: HomeThought | null;
   dailyThoughts: HomeThought[];
   categories: HomeCategory[];
   madeForYou: HomeMeditation[];
+  listenAgain: HomeMeditation[];
   topics: HomeTag[];
 };
 
@@ -202,6 +249,7 @@ export async function getHomeData(): Promise<HomeData> {
       dailyThoughts: [],
       categories: [],
       madeForYou: [],
+      listenAgain: [],
       topics: [],
     };
   }
@@ -211,6 +259,7 @@ export async function getHomeData(): Promise<HomeData> {
     dailyThoughtsResponse,
     categoriesResponse,
     madeForYouResponse,
+    listenAgainResponse,
     tagsResponse,
   ] = await Promise.all([
     backendGet<{ thought?: HomeThought | null }>("/api/thought/today", token),
@@ -221,6 +270,10 @@ export async function getHomeData(): Promise<HomeData> {
     backendGet<HomeCategory[]>("/api/category", token),
     backendGet<{ data?: HomeMeditation[] } | HomeMeditation[]>(
       "/api/meditation/by-user-tags?limit=12",
+      token,
+    ),
+    backendGet<{ data?: HomeMeditation[] }>(
+      "/api/meditation/recently-listened?limit=5",
       token,
     ),
     backendGet<HomeTag[]>("/api/tags", token),
@@ -234,6 +287,15 @@ export async function getHomeData(): Promise<HomeData> {
   const madeForYou = Array.isArray(madeForYouResponse)
     ? madeForYouResponse
     : madeForYouResponse?.data || [];
+
+  const listenAgainRaw = Array.isArray(listenAgainResponse?.data)
+    ? listenAgainResponse.data
+    : [];
+
+  const listenAgain = listenAgainRaw.map((meditation) => ({
+    ...meditation,
+    duration: normalizeDuration(meditation.duration),
+  }));
 
   const dailyThoughtsRaw = Array.isArray(dailyThoughtsResponse?.thoughts)
     ? dailyThoughtsResponse?.thoughts
@@ -257,17 +319,21 @@ export async function getHomeData(): Promise<HomeData> {
     dailyThoughts,
     categories,
     madeForYou,
+    listenAgain,
     topics,
   };
 }
 
-export async function getDailyThoughtsData(limit = 30): Promise<HomeThought[]> {
+export async function getDailyThoughtsData(
+  limit = 30,
+  skip = 0,
+): Promise<HomeThought[]> {
   const { token } = await getAuthContext();
   if (!token) return [];
 
   const response = await backendGet<{
     thoughts?: { data?: HomeThought[] } | HomeThought[];
-  }>(`/api/thought?limit=${limit}`, token);
+  }>(`/api/thought?limit=${limit}&skip=${skip}`, token);
 
   const thoughtsRaw = Array.isArray(response?.thoughts)
     ? response.thoughts
@@ -333,6 +399,84 @@ export async function getAllCategories(): Promise<HomeCategory[]> {
   return Array.isArray(response) ? response : [];
 }
 
+export async function getTopicMeditationsData(
+  requestedTopicId?: string,
+): Promise<TopicMeditationsData> {
+  const { token } = await getAuthContext();
+  if (!token) {
+    return {
+      topics: [],
+      activeTopicId: null,
+      meditations: [],
+    };
+  }
+
+  const topicsResponse = await backendGet<HomeTag[]>("/api/tags", token, {
+    cache: "force-cache",
+    revalidateSeconds: THIRTY_MINUTES_SECONDS,
+  });
+
+  const topics = Array.isArray(topicsResponse) ? topicsResponse : [];
+
+  const activeTopicId = topics.some((topic) => topic.id === requestedTopicId)
+    ? requestedTopicId || null
+    : topics[0]?.id || null;
+
+  if (!activeTopicId) {
+    return {
+      topics,
+      activeTopicId: null,
+      meditations: [],
+    };
+  }
+
+  const meditationsResponse = await backendGet<HomeMeditation[]>(
+    `/api/meditation/tag/${encodeURIComponent(activeTopicId)}`,
+    token,
+  );
+
+  const meditations = Array.isArray(meditationsResponse)
+    ? meditationsResponse
+    : [];
+
+  return {
+    topics,
+    activeTopicId,
+    meditations,
+  };
+}
+
+export async function getTopicMeditationsPaginated(
+  topicId: string,
+  limit = 12,
+  page = 1,
+): Promise<TopicMeditationsPage> {
+  const { token } = await getAuthContext();
+  if (!token || !topicId) {
+    return { data: [], hasMore: false };
+  }
+
+  const safeLimit = Math.min(50, Math.max(1, Number(limit) || 12));
+  const safePage = Math.max(1, Number(page) || 1);
+
+  const meditationsResponse = await backendGet<HomeMeditation[]>(
+    `/api/meditation/tag/${encodeURIComponent(topicId)}`,
+    token,
+  );
+
+  const allMeditations = Array.isArray(meditationsResponse)
+    ? meditationsResponse
+    : [];
+
+  const start = (safePage - 1) * safeLimit;
+  const end = start + safeLimit;
+
+  return {
+    data: allMeditations.slice(start, end),
+    hasMore: end < allMeditations.length,
+  };
+}
+
 export async function getCategoryDetailsData(categoryId: string): Promise<{
   category: HomeCategory | null;
   subcategories: HomeSubcategory[];
@@ -392,10 +536,6 @@ export async function getSubcategoryMeditationsPaginated(
   }>(
     `/api/meditation/subcategory/paginated?subcategoryId=${encodeURIComponent(subcategoryId)}&limit=${limit}&page=${page}`,
     token,
-    {
-      cache: "force-cache",
-      revalidateSeconds: THIRTY_MINUTES_SECONDS,
-    },
   );
 
   const data = Array.isArray(response?.data) ? response.data : [];
@@ -452,4 +592,66 @@ export async function getProfileData(): Promise<ProfileUser | null> {
     isSubscribed,
     planLabel,
   };
+}
+
+export async function getLibraryBadgesData(
+  limit = 50,
+): Promise<LibraryBadge[]> {
+  const { token } = await getAuthContext();
+  if (!token) return [];
+
+  const response = await backendGet<{
+    data?: BackendPlaylistItem[];
+  }>(`/api/playlist?limit=${limit}&page=1`, token);
+
+  const playlists = Array.isArray(response?.data) ? response.data : [];
+
+  return playlists.map((playlist) => ({
+    id: playlist.id,
+    label: (playlist.name || "Untitled").trim() || "Untitled",
+    count: Number(playlist._count?.items ?? playlist.meditationCount ?? 0),
+  }));
+}
+
+export async function getLibraryPlaylistMeditationsData(
+  playlistId: string,
+  limit = 50,
+): Promise<HomeMeditation[]> {
+  const result = await getLibraryPlaylistMeditationsPaginated(
+    playlistId,
+    limit,
+    1,
+  );
+
+  return result.data;
+}
+
+export async function getLibraryPlaylistMeditationsPaginated(
+  playlistId: string,
+  limit = 50,
+  page = 1,
+): Promise<LibraryPlaylistMeditationsPage> {
+  const { token } = await getAuthContext();
+  if (!token || !playlistId) {
+    return { data: [], hasMore: false };
+  }
+
+  const response = await backendGet<BackendPlaylistDetailResponse>(
+    `/api/playlist/${playlistId}?limit=${limit}&page=${page}`,
+    token,
+  );
+
+  const items = Array.isArray(response?.data?.items) ? response.data.items : [];
+  const data = items
+    .map((item) => item.meditation)
+    .filter((meditation): meditation is HomeMeditation =>
+      Boolean(meditation?.id),
+    );
+
+  const hasMore =
+    typeof response?.pagination?.hasNextPage === "boolean"
+      ? response.pagination.hasNextPage
+      : data.length === limit;
+
+  return { data, hasMore };
 }

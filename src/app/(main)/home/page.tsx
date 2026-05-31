@@ -4,16 +4,18 @@ import BottomNav from '@/components/bottomNav'
 import { CircleAlert, LockKeyholeOpen, LockOpen, Mic, MoveRight, Play, Sun } from 'lucide-react'
 import Link from 'next/link'
 import { getHomeData, getProfileData } from '@/lib/server/home'
-import { colorToPillClass, formatToMMSS, getDarkerColor } from '@/lib/utils'
+import { colorToPillClass, formatMinutes, formatToMMSS, getDarkerColor } from '@/lib/utils'
+import LazyAudioCard from '@/components/lazy-audio-card'
 import LocalGreeting from './_components/local-greeting'
 import Image from 'next/image'
 
 async function Home() {
     const [homeData, profile] = await Promise.all([getHomeData(), getProfileData()])
-    const madeForYou = homeData.madeForYou.slice(0, 10)
+    const listenAgain = homeData.listenAgain.slice(0, 5)
     const categories = homeData.categories.slice(0, 4)
     const topics = homeData.topics.slice(0, 12)
-    const dailyThoughts = homeData.dailyThoughts.slice(0, 4)
+    const dailyThoughts = homeData.dailyThoughts
+    const latestDailyThoughts = dailyThoughts.slice(0, 3)
     // Fix: Convert todayThought object to array and pick the first valid item
     const todayThoughtArray = Object.values(homeData?.todayThought || {}).filter(
         (item: any) => item && typeof item === 'object' && 'id' in item
@@ -53,7 +55,7 @@ async function Home() {
                                 <div className='flex gap-2 items-center rounded-full p-1'>
                                     <Play className='h-4 w-4 text-color fill-[#484848]' />
                                     <p className='font-poppins-400 text-color text-[1rem]'>
-                                        {formatToMMSS(todayThought?.duration)}
+                                        {formatMinutes(todayThought?.duration)}
                                     </p>
                                 </div>
                             </Badge>
@@ -150,34 +152,20 @@ async function Home() {
                     <section className='my-16'>
                         <div className='bg-[#DDF3E5] w-full rounded-[1.875rem] p-5'>
                             <p className='text-center my-3 font-poppins-600 text-secondary'>✨ Daily Thought</p>
-                            {dailyThoughts.length === 0 ? (
+                            {latestDailyThoughts.length === 0 ? (
                                 <p className='text-center text-sm text-secondary'>No thoughts available right now.</p>
                             ) : (
-                                dailyThoughts.slice(0, 1).map((thought) => (
+                                latestDailyThoughts.map((thought) => (
                                     <Link href={`/meditation/${thought.id}?type=thought`} key={thought.id}>
-                                        <div className='bg-white w-full min-h-[5rem] my-2 rounded-[1.875rem] p-3 flex justify-between items-center'>
-                                            <div className='flex gap-3 items-center'>
-                                                <div className='w-10 h-10 rounded-full bg-[#F8F9FF] flex items-center justify-center text-secondary'>
-                                                    ✨
-                                                </div>
-                                                <div>
-                                                    <p className='font-poppins-600 text-secondary text-[1rem] line-clamp-1'>
-                                                        {thought.title}
-                                                    </p>
-                                                    <p className='text-color font-poppins-400 text-[0.75rem]'>
-                                                        {formatToMMSS(thought.duration)} • Daily Thought
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <div className='bg-[#F8F9FF] h-[2.375rem] w-[2.375rem] rounded-full flex items-center justify-center'>
-                                                <Play className='h-4 w-4 text-color fill-[#484848]' />
-                                            </div>
-                                        </div>
+                                        <LazyAudioCard
+                                            title={thought.title}
+                                            subtitle={`${formatMinutes(thought.duration)} • Daily Thought`}
+                                        />
                                     </Link>
                                 ))
                             )}
                         </div>
-                        {dailyThoughts.length > 1 && (
+                        {dailyThoughts.length > 3 && (
                             <Link href='/daily-thoughts'>
                                 <p className='text-center my-3 font-poppins-600 text-secondary'>View All</p>
                             </Link>
@@ -195,45 +183,43 @@ async function Home() {
                     />
 
                     <section className='my-16'>
-                        <p className='text-color font-sniglet-400 text-lg mb-4'>Explore by topic</p>
+                        <div className='mb-4 flex items-center justify-between'>
+                            <p className='text-color font-sniglet-400 text-lg'>Explore by topic</p>
+                            <Link href='/topics' className='text-primary text-xs underline'>View All</Link>
+                        </div>
                         {topics.length === 0 ? (
                             <p className='text-sm text-color'>No topics available right now.</p>
                         ) : (
                             <div className='flex flex-wrap gap-3'>
                                 {topics.map((topic) => (
-                                    <Badge
-                                        key={topic.id}
-                                        className='border border-primary bg-[#DDF3E5C7] text-[0.75rem] text-primary rounded-full font-poppins-400'
-                                    >
-                                        {topic.name}
-                                    </Badge>
+                                    <Link key={topic.id} href={`/topics?topicId=${encodeURIComponent(topic.id)}`}>
+                                        <Badge className='border border-primary bg-[#DDF3E5C7] text-[0.75rem] text-primary rounded-full font-poppins-400 cursor-pointer hover:bg-[#CFE9D7] transition-colors'>
+                                            {topic.name}
+                                        </Badge>
+                                    </Link>
                                 ))}
                             </div>
                         )}
 
                         <p className='text-color font-sniglet-400 text-lg my-4 mt-8'>Listen Again</p>
-                        <div className='space-y-2'>
-                            {madeForYou.slice(0, 3).map((meditation) => (
-                                <Link href={`/meditation/${meditation.id}`} key={`listen-${meditation.id}`}>
-                                    <div className='bg-white w-full min-h-[5rem] rounded-[1.875rem] p-3 flex justify-between items-center'>
-                                        <div className='flex gap-3 items-center'>
-                                            <div className='w-10 h-10 rounded-full bg-[#F8F9FF] flex items-center justify-center text-secondary'>
-                                                🎧
-                                            </div>
-                                            <div>
-                                                <p className='font-poppins-600 text-secondary text-[1rem] line-clamp-1'>{meditation.title}</p>
-                                                <p className='text-color font-poppins-400 text-[0.75rem]'>
-                                                    {formatToMMSS(meditation.duration)} • {meditation.category?.name || 'Guided'}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className='bg-[#F8F9FF] h-[2.375rem] w-[2.375rem] rounded-full flex items-center justify-center'>
-                                            <Play className='h-4 w-4 text-color fill-[#484848]' />
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
+                        {listenAgain.length === 0 ? (
+                            <p className='text-sm text-color'>No listening history yet. Start a meditation to see it here.</p>
+                        ) : (
+                            <div className='space-y-2'>
+                                {listenAgain.map((meditation) => (
+                                    <Link href={`/meditation/${meditation.id}`} key={`listen-${meditation.id}`}>
+                                        <LazyAudioCard
+                                            title={meditation.title}
+                                            subtitle={`${meditation.duration} min • ${meditation.category?.name || 'Guided'}`}
+                                            imageSrc={meditation.thumbnail || undefined}
+                                            imageAlt={meditation.title}
+                                            meditationId={meditation.id}
+                                            initialLiked={Boolean(meditation.isLiked)}
+                                        />
+                                    </Link>
+                                ))}
+                            </div>
+                        )}
                     </section>
 
                     <hr

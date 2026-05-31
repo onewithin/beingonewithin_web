@@ -279,3 +279,172 @@ export async function addMeditationToPlaylist(
     };
   }
 }
+
+/**
+ * Remove meditation from playlist
+ */
+export async function removeMeditationFromPlaylist(
+  playlistId: string,
+  meditationId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { token } = await getAuthContext();
+
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const backendResult = await fetchFromBackend(
+      `/api/playlist/${playlistId}/meditations/${meditationId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!backendResult.response) {
+      return {
+        success: false,
+        error: backendResult.lastError,
+      };
+    }
+
+    const response = backendResult.response;
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.error || "Failed to remove from playlist",
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error removing from playlist:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Rename or update playlist
+ */
+export async function updatePlaylist(
+  playlistId: string,
+  data: {
+    name?: string;
+    description?: string;
+    icon?: string;
+    isPublic?: boolean;
+  },
+): Promise<{ success: boolean; playlist?: Playlist; error?: string }> {
+  try {
+    const { token } = await getAuthContext();
+
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const backendResult = await fetchFromBackend(
+      `/api/playlist/${playlistId}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      },
+    );
+
+    if (!backendResult.response) {
+      return {
+        success: false,
+        error: backendResult.lastError,
+      };
+    }
+
+    const response = backendResult.response;
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.error || "Failed to update playlist",
+      };
+    }
+
+    const result = await response.json();
+    const playlist = result.data as BackendPlaylist;
+
+    return {
+      success: true,
+      playlist: {
+        ...playlist,
+        meditationCount:
+          playlist._count?.items ?? playlist.meditationCount ?? 0,
+      },
+    };
+  } catch (error) {
+    console.error("Error updating playlist:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Delete playlist
+ */
+export async function deletePlaylist(
+  playlistId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { token } = await getAuthContext();
+
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const backendResult = await fetchFromBackend(
+      `/api/playlist/${playlistId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!backendResult.response) {
+      return {
+        success: false,
+        error: backendResult.lastError,
+      };
+    }
+
+    const response = backendResult.response;
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.error || "Failed to delete playlist",
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting playlist:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}

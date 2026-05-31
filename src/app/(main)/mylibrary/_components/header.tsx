@@ -4,7 +4,11 @@ import { ChevronLeft } from 'lucide-react';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 
-function Header() {
+type HeaderProps = {
+    title?: string
+}
+
+function Header({ title = 'My Library' }: HeaderProps) {
     const router = useRouter();
 
     const handleBack = () => {
@@ -20,7 +24,7 @@ function Header() {
             >
                 <ChevronLeft />
             </button>
-            <p className='font-poppins-600 text-[16px] mx-2'>My Library</p>
+            <p className='font-poppins-600 text-[16px] mx-2'>{title}</p>
         </div>
     );
 }

@@ -210,6 +210,8 @@ function SubcategoryAudios({
                                     subtitle={`${formatSecondsMMSS(meditation.duration)} • ${selectedSubcategoryName}`}
                                     imageSrc={meditation.thumbnail || undefined}
                                     imageAlt={meditation.title}
+                                    meditationId={meditation.id}
+                                    initialLiked={Boolean(meditation.isLiked)}
                                 />
                             </Link>
                         ))}
