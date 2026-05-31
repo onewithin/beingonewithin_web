@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getAuthContext } from "@/lib/server/home";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 type NotificationPreferences = {
   push: boolean;
@@ -34,7 +35,7 @@ async function backendAuthedFetch<T>(
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}${path}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
       cache: "no-store",
       ...init,
       headers: {
@@ -227,15 +228,18 @@ export async function updateProfileNameAction(
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/user/${userId}`, {
-      method: "PATCH",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/api/user/${userId}`,
+      {
+        method: "PATCH",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: trimmed }),
       },
-      body: JSON.stringify({ name: trimmed }),
-    });
+    );
 
     const data = (await response.json().catch(() => null)) as {
       success?: boolean;
@@ -291,14 +295,17 @@ export async function updateProfilePhotoAction(
     const body = new FormData();
     body.append("profilePicture", file);
 
-    const response = await fetch(`${BACKEND_URL}/api/user/${userId}`, {
-      method: "PATCH",
-      cache: "no-store",
-      headers: {
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/api/user/${userId}`,
+      {
+        method: "PATCH",
+        cache: "no-store",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body,
       },
-      body,
-    });
+    );
 
     const data = (await response.json().catch(() => null)) as {
       success?: boolean;
@@ -341,14 +348,17 @@ export async function getPolicyAction(
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/api/privacy-policy/${type}`, {
-      method: "GET",
-      cache: "no-store",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/api/privacy-policy/${type}`,
+      {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       },
-    });
+    );
 
     const json = (await response.json().catch(() => null)) as {
       message?: string;

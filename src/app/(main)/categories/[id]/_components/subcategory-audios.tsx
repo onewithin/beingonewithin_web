@@ -6,7 +6,7 @@ import AudioCard from '@/components/audioCard'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatToMMSS, getDarkerColor } from '@/lib/utils'
+import { formatSecondsMMSS, getDarkerColor } from '@/lib/utils'
 import type { HomeMeditation, HomeSubcategory, PaginationData } from '@/lib/server/home'
 
 type Props = {
@@ -207,7 +207,7 @@ function SubcategoryAudios({
                             <Link href={`/meditation/${meditation.id}`} key={meditation.id}>
                                 <AudioCard
                                     title={meditation.title}
-                                    subtitle={`${meditation.duration} • ${selectedSubcategoryName}`}
+                                    subtitle={`${formatSecondsMMSS(meditation.duration)} • ${selectedSubcategoryName}`}
                                     imageSrc={meditation.thumbnail || undefined}
                                     imageAlt={meditation.title}
                                 />

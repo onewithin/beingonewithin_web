@@ -2,7 +2,8 @@
 
 import { cookies } from "next/headers";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 type ApiResult<T> = {
   ok: boolean;
@@ -79,12 +80,15 @@ async function attemptTokenRefresh(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const refreshResponse = await fetch(`${BACKEND_URL}/refresh-token`, {
-      method: "POST",
-      cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
+    const refreshResponse = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/refresh-token`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      },
+    );
 
     if (!refreshResponse.ok) return null;
 
@@ -132,7 +136,7 @@ async function authenticatedFetch<T>(
 
   let response: Response;
   try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
+    response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
       ...options,
       cache: "no-store",
       headers: {
@@ -145,7 +149,7 @@ async function authenticatedFetch<T>(
     if (response.status === 401) {
       const newToken = await attemptTokenRefresh();
       if (newToken) {
-        const retryResponse = await fetch(`${BACKEND_URL}${path}`, {
+        const retryResponse = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
           ...options,
           cache: "no-store",
           headers: {

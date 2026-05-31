@@ -1,9 +1,76 @@
-import React from 'react'
+"use client"
+
+import React, { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+
+function normalizeHexColor(color: string | null | undefined): string | null {
+    if (!color || typeof color !== 'string') return null
+
+    const trimmed = color.trim()
+    if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) {
+        return trimmed
+    }
+
+    if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+        const r = trimmed[1]
+        const g = trimmed[2]
+        const b = trimmed[3]
+        return `#${r}${r}${g}${g}${b}${b}`
+    }
+
+    return null
+}
 
 export default function MeditationLoading() {
+    const pathname = usePathname()
+    const [loaderColor, setLoaderColor] = useState('#DDF3E5')
+
+    const meditationId = useMemo(() => {
+        const segments = pathname.split('/').filter(Boolean)
+        const meditationIndex = segments.findIndex((segment) => segment === 'meditation')
+        if (meditationIndex === -1) return null
+        return segments[meditationIndex + 1] || null
+    }, [pathname])
+
+    useEffect(() => {
+        if (!meditationId) return
+
+        let isMounted = true
+
+        const fetchColor = async () => {
+            try {
+                const response = await fetch(`/api/meditation-color/${meditationId}`, {
+                    cache: 'no-store',
+                })
+
+                if (!response.ok) return
+
+                const data = await response.json()
+                const resolvedColor = normalizeHexColor(data?.color)
+
+                if (isMounted && resolvedColor) {
+                    setLoaderColor(resolvedColor)
+                }
+            } catch {
+                // Keep default fallback color when color lookup fails.
+            }
+        }
+
+        fetchColor()
+
+        return () => {
+            isMounted = false
+        }
+    }, [meditationId])
+
     return (
-        <div className="relative h-screen p-4 bg-gradient-to-b from-primary to-white overflow-hidden">
+        <div
+            className="relative h-screen p-4 overflow-hidden"
+            style={{
+                background: `linear-gradient(180deg, ${loaderColor} 0%, ${loaderColor}CC 45%, #ffffff 100%)`,
+            }}
+        >
             <div className='md:max-w-[37.5rem] lg:max-w-[50rem] xl:max-w-[62.5rem] mx-auto'>
                 {/* Header Skeleton */}
                 <div className='inline-flex py-2 rounded-full gap-2 items-center animate-pulse'>

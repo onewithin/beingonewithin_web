@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
 const THIRTY_MINUTES_SECONDS = 1800;
 
 type BackendGetOptions = {
@@ -155,7 +156,10 @@ export async function backendGet<T>(
       fetchOptions.next = { revalidate: options.revalidateSeconds };
     }
 
-    const response = await fetch(`${BACKEND_URL}${path}`, fetchOptions);
+    const response = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}${path}`,
+      fetchOptions,
+    );
 
     if (!response.ok) {
       return null;
@@ -296,13 +300,14 @@ export async function getDownloadedMeditationsData(
 
 export async function getLikedMeditationsData(
   limit = 30,
+  skip = 0,
 ): Promise<HomeMeditation[]> {
   const { token, userId } = await getAuthContext();
   if (!token || !userId) return [];
 
   const response = await backendGet<{
     likedMeditations?: LikedMeditationItem[];
-  }>(`/api/liked/user/${userId}?limit=${limit}`, token);
+  }>(`/api/liked/user/${userId}?limit=${limit}&skip=${skip}`, token);
 
   const liked = response?.likedMeditations || [];
 
@@ -314,7 +319,6 @@ export async function getLikedMeditationsData(
     .map((meditation) => ({
       ...meditation,
       isLiked: true,
-      duration: normalizeDuration(meditation.duration),
     }));
 }
 
@@ -403,10 +407,7 @@ export async function getSubcategoryMeditationsPaginated(
   };
 
   return {
-    data: data.map((meditation) => ({
-      ...meditation,
-      duration: normalizeDuration(meditation.duration),
-    })),
+    data,
     pagination,
   };
 }

@@ -100,3 +100,24 @@ export function formatToMMSS(value?: string | number | null): string {
   const ss = totalSeconds % 60;
   return `${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
 }
+
+/**
+ * Formats seconds into MM:SS using strict numeric conversion.
+ * Mirrors: Number(value) -> floor(total/60) and total%60.
+ */
+export function formatSecondsMMSS(value?: string | number | null): string {
+  const totalSeconds = Number(value);
+
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) {
+    return "00:00";
+  }
+
+  const normalizedTotalSeconds = Math.floor(totalSeconds);
+  const minutes = String(Math.floor(normalizedTotalSeconds / 60)).padStart(
+    2,
+    "0",
+  );
+  const seconds = String(normalizedTotalSeconds % 60).padStart(2, "0");
+
+  return `${minutes}:${seconds}`;
+}

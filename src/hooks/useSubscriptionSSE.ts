@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3010";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3010";
 
 export type SSEEvent = {
   type: string;
@@ -29,10 +30,10 @@ export function useSubscriptionSSE(enabled: boolean = true) {
     }
 
     // EventSource will automatically send cookies with withCredentials
-    const url = `${BACKEND_URL}/api/subscription/sse/subscribe`;
-    
+    const url = `${NEXT_PUBLIC_BACKEND_URL}/api/subscription/sse/subscribe`;
+
     console.log("Connecting to SSE:", url);
-    
+
     try {
       const eventSource = new EventSource(url, {
         withCredentials: true, // Send cookies for authentication
@@ -53,7 +54,7 @@ export function useSubscriptionSSE(enabled: boolean = true) {
             type: "payment_success",
             data,
           };
-          
+
           setLastEvent(event);
         } catch (error) {
           console.error("Error parsing SSE data:", error);
@@ -66,17 +67,27 @@ export function useSubscriptionSSE(enabled: boolean = true) {
         eventSource.close();
 
         // Attempt to reconnect with exponential backoff
-        if (reconnectAttempts.current < maxReconnectAttempts && !reconnectTimeoutRef.current) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-          console.log(`⏳ Reconnecting SSE in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})...`);
-          
+        if (
+          reconnectAttempts.current < maxReconnectAttempts &&
+          !reconnectTimeoutRef.current
+        ) {
+          const delay = Math.min(
+            1000 * Math.pow(2, reconnectAttempts.current),
+            30000,
+          );
+          console.log(
+            `⏳ Reconnecting SSE in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})...`,
+          );
+
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttempts.current++;
             reconnectTimeoutRef.current = null;
             connect();
           }, delay);
         } else if (reconnectAttempts.current >= maxReconnectAttempts) {
-          console.log("❌ Max reconnection attempts reached. Stopping SSE reconnection.");
+          console.log(
+            "❌ Max reconnection attempts reached. Stopping SSE reconnection.",
+          );
         }
       };
 

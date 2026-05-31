@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ChevronLeft, FileText } from 'lucide-react'
 import { PolicySection, EmptySection } from '@/app/(main)/terms/_components/PolicySection'
 
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000'
+const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'
 
 type PolicyDocument = {
     id: string
@@ -14,7 +14,7 @@ type PolicyDocument = {
 
 async function getTermsPolicy(): Promise<{ success: boolean; data: PolicyDocument | null; message: string }> {
     try {
-        const response = await fetch(`${BACKEND_URL}/api/privacy-policy/2`, {
+        const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/privacy-policy/2`, {
             method: 'GET',
             cache: 'no-store',
             headers: {

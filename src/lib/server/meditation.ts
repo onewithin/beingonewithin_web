@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 export type MeditationDetail = {
   id: string;
@@ -17,6 +18,7 @@ export type MeditationDetail = {
     id: string;
     name: string;
     color?: string | null;
+    backgroundImage?: string | null;
   } | null;
   subcategory?: {
     id: string;
@@ -86,7 +88,7 @@ export async function getAuthContext(): Promise<{
 
 async function backendGet<T>(path: string, token: string): Promise<T | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}${path}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -114,7 +116,7 @@ export async function backendPost<T>(
   body: Record<string, unknown>,
 ): Promise<T | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}${path}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -141,7 +143,7 @@ export async function backendPut<T>(
   body: Record<string, unknown>,
 ): Promise<T | null> {
   try {
-    const response = await fetch(`${BACKEND_URL}${path}`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -189,10 +191,14 @@ export async function getMeditationOrThoughtDetail(
     }>(`/api/meditation/${id}`, token);
 
     if (meditationResponse) {
+      const meditationData =
+        meditationResponse.meditation || meditationResponse;
+      const watchHistory = meditationResponse.watchHistory || null;
+
       return {
-        data: meditationResponse,
+        data: meditationData,
         type: "meditation",
-        watchHistory: meditationResponse.watchHistory || null,
+        watchHistory,
       };
     }
 

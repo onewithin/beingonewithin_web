@@ -2,7 +2,54 @@
 
 import { cookies } from "next/headers";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
+const BACKEND_URL_CANDIDATES = Array.from(
+  new Set(
+    [
+      process.env.NEXT_PUBLIC_BACKEND_URL,
+      process.env.BACKEND_URL_FALLBACK,
+      "http://localhost:3001",
+      NEXT_PUBLIC_BACKEND_URL,
+    ].filter((url): url is string => Boolean(url && url.trim())),
+  ),
+);
+
+async function fetchFromBackend(
+  path: string,
+  options: RequestInit,
+): Promise<
+  | { response: Response; baseUrl: string }
+  | { response: null; baseUrl: null; lastError: string }
+> {
+  let lastError = "Failed to fetch from backend";
+
+  for (const baseUrl of BACKEND_URL_CANDIDATES) {
+    try {
+      const response = await fetch(`${baseUrl}${path}`, options);
+
+      // Auth/permission errors should be returned immediately from reachable backend.
+      if (response.status === 401 || response.status === 403) {
+        return { response, baseUrl };
+      }
+
+      if (response.ok) {
+        return { response, baseUrl };
+      }
+
+      const errorData = await response.json().catch(() => ({}));
+      const candidateError =
+        errorData?.message ||
+        errorData?.error ||
+        `Backend error: ${response.status}`;
+      lastError = `${candidateError} (${baseUrl})`;
+    } catch (error) {
+      lastError = `${error instanceof Error ? error.message : "Network error"} (${baseUrl})`;
+    }
+  }
+
+  return { response: null, baseUrl: null, lastError };
+}
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -45,6 +92,13 @@ export type Playlist = {
   createdAt: string;
   updatedAt: string;
   userId: string;
+  meditationCount?: number;
+};
+
+type BackendPlaylist = Playlist & {
+  _count?: {
+    items?: number;
+  };
 };
 
 /**
@@ -56,21 +110,28 @@ export async function getUserPlaylists(): Promise<{
   error?: string;
 }> {
   try {
-    const { token, userId } = await getAuthContext();
+    const { token } = await getAuthContext();
 
-    if (!token || !userId) {
+    if (!token) {
       return { success: false, error: "Not authenticated" };
     }
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/playlist?userId=${userId}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    const backendResult = await fetchFromBackend(`/api/playlist`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
-    );
+      cache: "no-store",
+    });
+
+    if (!backendResult.response) {
+      return {
+        success: false,
+        error: backendResult.lastError,
+      };
+    }
+
+    const response = backendResult.response;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -81,7 +142,15 @@ export async function getUserPlaylists(): Promise<{
     }
 
     const data = await response.json();
-    return { success: true, playlists: data.data || [] };
+    const playlists: Playlist[] = ((data.data || []) as BackendPlaylist[]).map(
+      (playlist) => ({
+        ...playlist,
+        meditationCount:
+          playlist._count?.items ?? playlist.meditationCount ?? 0,
+      }),
+    );
+
+    return { success: true, playlists };
   } catch (error) {
     console.error("Error fetching playlists:", error);
     return {
@@ -107,7 +176,7 @@ export async function createPlaylist(data: {
       return { success: false, error: "Not authenticated" };
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/playlist`, {
+    const backendResult = await fetchFromBackend(`/api/playlist`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -119,6 +188,15 @@ export async function createPlaylist(data: {
       }),
     });
 
+    if (!backendResult.response) {
+      return {
+        success: false,
+        error: backendResult.lastError,
+      };
+    }
+
+    const response = backendResult.response;
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       return {
@@ -128,7 +206,16 @@ export async function createPlaylist(data: {
     }
 
     const result = await response.json();
-    return { success: true, playlist: result.data };
+    const playlist = result.data as BackendPlaylist;
+
+    return {
+      success: true,
+      playlist: {
+        ...playlist,
+        meditationCount:
+          playlist._count?.items ?? playlist.meditationCount ?? 0,
+      },
+    };
   } catch (error) {
     console.error("Error creating playlist:", error);
     return {
@@ -152,8 +239,8 @@ export async function addMeditationToPlaylist(
       return { success: false, error: "Not authenticated" };
     }
 
-    const response = await fetch(
-      `${BACKEND_URL}/api/playlist/${playlistId}/meditations`,
+    const backendResult = await fetchFromBackend(
+      `/api/playlist/${playlistId}/meditations`,
       {
         method: "POST",
         headers: {
@@ -165,6 +252,15 @@ export async function addMeditationToPlaylist(
         }),
       },
     );
+
+    if (!backendResult.response) {
+      return {
+        success: false,
+        error: backendResult.lastError,
+      };
+    }
+
+    const response = backendResult.response;
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

@@ -1,8 +1,9 @@
 'use client'
 import { Pause, Play, RotateCcw, SkipBack, SkipForward, Volume2, VolumeX } from 'lucide-react'
 import React, { useRef, useState, useEffect, useCallback } from 'react'
-import { updateMeditationWatchTime } from '@/lib/actions/meditation'
+import { startMeditationWatchSession, updateMeditationWatchTime } from '@/lib/actions/meditation'
 import { useAudio } from '@/contexts/AudioContext'
+import AddToPlaylistButton from './AddToPlaylistButton'
 
 function formatTime(seconds: number) {
     const mins = Math.floor(seconds / 60)
@@ -18,7 +19,9 @@ interface AudioProgressBarProps {
     watchHistoryId: string | null;
     totalDuration: number;
     initialWatchedDuration?: number;
+    initialHistoryCompleted?: boolean;
     contentType: 'meditation' | 'thought';
+    accentColor?: string;
 }
 
 function AudioProgressBar({
@@ -29,10 +32,14 @@ function AudioProgressBar({
     watchHistoryId,
     totalDuration,
     initialWatchedDuration = 0,
-    contentType
+    initialHistoryCompleted = false,
+    contentType,
+    accentColor
 }: AudioProgressBarProps) {
     const saveIntervalRef = useRef<NodeJS.Timeout | null>(null)
-    const lastSavedTimeRef = useRef<number>(initialWatchedDuration)
+    const lastSavedTimeRef = useRef<number>(0)
+    const startingSessionRef = useRef(false)
+    const hasRestoredInitialPositionRef = useRef(false)
     const {
         setNowPlaying,
         isPlaying,
@@ -49,6 +56,15 @@ function AudioProgressBar({
 
     const [progress, setProgress] = useState(0)
     const [isLoading, setIsLoading] = useState(true)
+    const [activeWatchHistoryId, setActiveWatchHistoryId] = useState<string | null>(
+        initialHistoryCompleted ? null : watchHistoryId,
+    )
+
+    useEffect(() => {
+        setActiveWatchHistoryId(initialHistoryCompleted ? null : watchHistoryId)
+        lastSavedTimeRef.current = 0
+        hasRestoredInitialPositionRef.current = false
+    }, [watchHistoryId, initialHistoryCompleted])
 
     // Set global audio context when component mounts
     useEffect(() => {
@@ -58,13 +74,13 @@ function AudioProgressBar({
             thumbnail,
             audioSrc,
             contentType,
-            watchHistoryId,
+            watchHistoryId: activeWatchHistoryId,
         })
 
         return () => {
             // Don't clear nowPlaying on unmount - let it persist
         }
-    }, [meditationId, title, thumbnail, audioSrc, contentType, watchHistoryId, setNowPlaying])
+    }, [meditationId, title, thumbnail, audioSrc, contentType, activeWatchHistoryId, setNowPlaying])
 
     // Update progress based on currentTime and duration
     useEffect(() => {
@@ -82,18 +98,56 @@ function AudioProgressBar({
 
     // Restore previous watch position when audio loads
     useEffect(() => {
-        if (duration > 0 && initialWatchedDuration > 0 && initialWatchedDuration < duration) {
-            // Only restore if we haven't already moved past this point
+        if (
+            !hasRestoredInitialPositionRef.current &&
+            duration > 0 &&
+            initialWatchedDuration > 0 &&
+            initialWatchedDuration < duration
+        ) {
+            // Restore only once for the loaded track so manual seeks/restart are respected.
             if (currentTime < 1) {
                 seekTo(initialWatchedDuration)
+                lastSavedTimeRef.current = initialWatchedDuration
             }
+
+            hasRestoredInitialPositionRef.current = true
         }
     }, [duration, initialWatchedDuration, seekTo, currentTime])
+
+    const ensureWatchSession = useCallback(async () => {
+        if (contentType !== 'meditation') {
+            return null
+        }
+
+        if (activeWatchHistoryId) {
+            return activeWatchHistoryId
+        }
+
+        if (startingSessionRef.current) {
+            return null
+        }
+
+        startingSessionRef.current = true
+
+        try {
+            const result = await startMeditationWatchSession(meditationId)
+            if (!result.success || !result.watchHistoryId) {
+                return null
+            }
+
+            setActiveWatchHistoryId(result.watchHistoryId)
+            return result.watchHistoryId
+        } catch {
+            return null
+        } finally {
+            startingSessionRef.current = false
+        }
+    }, [contentType, activeWatchHistoryId, meditationId])
 
     // Save watch progress to backend
     const saveWatchProgress = useCallback(async (watchedSeconds: number, isCompleted: boolean = false) => {
         // Only save for meditation type
-        if (contentType !== 'meditation' || !watchHistoryId) return
+        if (contentType !== 'meditation' || !activeWatchHistoryId) return
 
         // Only save if there's a significant change (>5 seconds or completed)
         const timeDiff = Math.abs(watchedSeconds - lastSavedTimeRef.current)
@@ -102,11 +156,16 @@ function AudioProgressBar({
         lastSavedTimeRef.current = watchedSeconds
 
         try {
-            await updateMeditationWatchTime(watchHistoryId, Math.floor(watchedSeconds), isCompleted)
+            await updateMeditationWatchTime(activeWatchHistoryId, Math.floor(watchedSeconds), isCompleted)
+
+            if (isCompleted) {
+                setActiveWatchHistoryId(null)
+                lastSavedTimeRef.current = 0
+            }
         } catch (error) {
             console.error('Failed to save watch progress:', error)
         }
-    }, [watchHistoryId, contentType])
+    }, [activeWatchHistoryId, contentType])
 
     // Auto-save progress every 10 seconds while playing
     useEffect(() => {
@@ -134,7 +193,7 @@ function AudioProgressBar({
         if (!audio) return
 
         const handleEnded = () => {
-            if (contentType === 'meditation' && watchHistoryId) {
+            if (contentType === 'meditation' && activeWatchHistoryId) {
                 saveWatchProgress(duration, true)
             }
         }
@@ -143,7 +202,7 @@ function AudioProgressBar({
         return () => {
             audio.removeEventListener('ended', handleEnded)
         }
-    }, [audioRef, contentType, watchHistoryId, duration, saveWatchProgress])
+    }, [audioRef, contentType, activeWatchHistoryId, duration, saveWatchProgress])
 
     // Save on unmount/page leave
     useEffect(() => {
@@ -154,25 +213,43 @@ function AudioProgressBar({
         }
     }, [contentType, currentTime, saveWatchProgress])
 
-    const togglePlayPause = () => {
+    const togglePlayPause = async () => {
         if (isPlaying) {
             pauseAudio()
             // Save progress on pause
             saveWatchProgress(currentTime, false)
         } else {
+            if (contentType === 'meditation') {
+                const sessionId = await ensureWatchSession()
+                if (!sessionId) {
+                    return
+                }
+            }
             playAudio()
         }
     }
 
-    const handleRestart = () => {
+    const handleRestart = async () => {
+        pauseAudio()
+        hasRestoredInitialPositionRef.current = true
         seekTo(0)
-        if (!isPlaying) {
-            playAudio()
+        setProgress(0)
+        lastSavedTimeRef.current = 0
+
+        if (contentType === 'meditation') {
+            const sessionId = await ensureWatchSession()
+            if (!sessionId) {
+                return
+            }
         }
+
+        playAudio()
     }
 
     const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
         if (!duration) return
+
+        hasRestoredInitialPositionRef.current = true
 
         const rect = e.currentTarget.getBoundingClientRect()
         const clickX = e.clientX - rect.left
@@ -255,33 +332,46 @@ function AudioProgressBar({
                 {/* Duration */}
                 <p className="text-sm w-[2.5rem] text-color">{formatTime(duration)}</p>
 
-                {/* Controls */}
-                <div className="ml-3 flex gap-2 items-center">
-                    <button onClick={handleRestart} aria-label="Restart" className="hover:scale-110 transition-transform">
-                        <RotateCcw className="w-6 h-6 text-secondary" />
-                    </button>
-                    <div className="mx-3 flex gap-3">
-                        <button onClick={skipBackward} aria-label="Skip back 10 seconds" className="hover:scale-110 transition-transform">
-                            <SkipBack className="w-6 h-6 text-secondary" />
-                        </button>
-                        <button
-                            onClick={togglePlayPause}
-                            disabled={isLoading}
-                            className="mx-3 p-2 rounded-full bg-primary flex flex-row items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
-                            aria-label={isPlaying ? 'Pause' : 'Play'}
-                        >
-                            {isPlaying ? (
-                                <Pause className="w-6 h-6 text-white fill-white" />
-                            ) : (
-                                <Play className="w-6 h-6 text-white fill-white" />
-                            )}
-                        </button>
-                        <button onClick={skipForward} aria-label="Skip forward 10 seconds" className="hover:scale-110 transition-transform">
-                            <SkipForward className="w-6 h-6 text-secondary" />
-                        </button>
-                    </div>
 
-                    {/* Volume control */}
+            </div>
+
+            <div className="mt-4 flex justify-between items-center">
+
+                <button
+                    onClick={handleRestart}
+                    className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-primary hover:opacity-90 transition-colors"
+                    aria-label="Restart"
+                >
+                    <span
+                        aria-hidden
+                        className="inline-block h-5 w-5 bg-primary"
+                        style={{
+                            WebkitMaskImage: 'url(/icons/restart.png)',
+                            WebkitMaskRepeat: 'no-repeat',
+                            WebkitMaskPosition: 'center',
+                            WebkitMaskSize: 'contain',
+                            maskImage: 'url(/icons/restart.png)',
+                            maskRepeat: 'no-repeat',
+                            maskPosition: 'center',
+                            maskSize: 'contain',
+                        }}
+                    />
+                    <span className="text-sm">Restart</span>
+                </button>
+                <button
+                    onClick={togglePlayPause}
+                    disabled={isLoading}
+                    className="mx-3 p-2 rounded-full bg-primary flex flex-row items-center justify-center hover:scale-110 transition-transform disabled:opacity-50"
+                    aria-label={isPlaying ? 'Pause' : 'Play'}
+                >
+                    {isPlaying ? (
+                        <Pause className="w-6 h-6 text-white fill-white" />
+                    ) : (
+                        <Play className="w-6 h-6 text-white fill-white" />
+                    )}
+                </button>
+
+                <div className="flex justify-center">
                     <div className="flex items-center gap-2 ml-4">
                         <button
                             onClick={() => setVolume(volume > 0 ? 0 : 1)}
@@ -304,6 +394,12 @@ function AudioProgressBar({
                             className="w-[5rem] h-1 cursor-pointer accent-primary"
                         />
                     </div>
+                    <AddToPlaylistButton
+                        meditationId={meditationId}
+                        meditationTitle={title}
+                        contentType={contentType}
+                        accentColor={accentColor}
+                    />
                 </div>
             </div>
         </div>

@@ -1,17 +1,36 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import Image from 'next/image'
-import { Play, Pause, X } from 'lucide-react'
+import { Heart, Play, Pause, X } from 'lucide-react'
 import { useAudio } from '@/contexts/AudioContext'
 import { usePathname, useRouter } from 'next/navigation'
+import { likeMeditation } from '@/lib/actions/meditation'
 
 function MiniPlayer() {
-    const { nowPlaying, isPlaying, pauseAudio, playAudio, closePlayer } = useAudio()
+    const { nowPlaying, isPlaying, pauseAudio, playAudio } = useAudio()
     const pathname = usePathname()
     const router = useRouter()
+    const [isLiked, setIsLiked] = useState(false)
+    const [dismissedTrackId, setDismissedTrackId] = useState<string | null>(() => {
+        if (typeof window === 'undefined') {
+            return null
+        }
+
+        return window.sessionStorage.getItem('dismissedMiniPlayerId')
+    })
+
+    useEffect(() => {
+        if (!nowPlaying) {
+            return
+        }
+
+        setIsLiked(false)
+    }, [nowPlaying?.id])
+
+    const isDismissed = !!nowPlaying && dismissedTrackId === nowPlaying.id
 
     // Don't show mini player on the meditation details page itself
-    if (!nowPlaying || pathname?.includes(`/meditation/${nowPlaying.id}`)) {
+    if (!nowPlaying || isDismissed || pathname?.includes(`/meditation/${nowPlaying.id}`)) {
         return null
     }
 
@@ -19,40 +38,63 @@ function MiniPlayer() {
         router.push(`/meditation/${nowPlaying.id}?type=${nowPlaying.contentType}`)
     }
 
+    const handleLike = () => {
+        if (nowPlaying.contentType !== 'meditation' || isLiked) return
+
+        setIsLiked(true)
+
+        void (async () => {
+            const result = await likeMeditation(nowPlaying.id)
+            if (!result.success) {
+                setIsLiked(false)
+            }
+        })()
+    }
+
     return (
-        <div className="fixed bottom-[4.5rem] md:bottom-[5.5rem] left-1/2 transform -translate-x-1/2 w-full md:w-[401px] bg-white shadow-lg border-t border-gray-200 z-40">
-            <div className="flex items-center gap-3 p-3">
-                {/* Thumbnail */}
-                <div
-                    onClick={handleClick}
-                    className="relative w-12 h-12 rounded-lg overflow-hidden cursor-pointer flex-shrink-0"
-                >
-                    <Image
-                        src={nowPlaying.thumbnail}
-                        fill
-                        alt={nowPlaying.title}
-                        className="object-cover"
-                    />
-                </div>
+        <div className="fixed bottom-[4.65rem] md:bottom-[6rem] left-1/2 z-40 w-[calc(100%-1.5rem)] md:max-w-[37.5rem] lg:max-w-[50rem] xl:max-w-[62.5rem] -translate-x-1/2">
+            <div className="relative rounded-[1.35rem] border border-[#DDE9E3] bg-white/96 px-3 py-3 shadow-[0_14px_32px_rgba(31,93,87,0.16)] backdrop-blur-xl">
+                <div className="flex items-center gap-3">
+                    <div
+                        onClick={handleClick}
+                        className="relative h-12 w-12 flex-shrink-0 cursor-pointer overflow-hidden rounded-[0.9rem]"
+                    >
+                        <Image
+                            src={nowPlaying.thumbnail}
+                            fill
+                            alt={nowPlaying.title}
+                            className="object-cover"
+                        />
+                    </div>
 
-                {/* Title */}
-                <div
-                    onClick={handleClick}
-                    className="flex-1 min-w-0 cursor-pointer"
-                >
-                    <p className="text-sm font-poppins-600 text-secondary truncate">
-                        {nowPlaying.title}
-                    </p>
-                    <p className="text-xs text-gray-500 capitalize">
-                        {nowPlaying.contentType}
-                    </p>
-                </div>
+                    <div
+                        onClick={handleClick}
+                        className="min-w-0 flex-1 cursor-pointer"
+                    >
+                        <p className="truncate text-sm font-poppins-600 text-secondary">
+                            {nowPlaying.title}
+                        </p>
+                        <p className="mt-1 truncate text-xs capitalize text-[#6B7280]">
+                            {nowPlaying.contentType}
+                        </p>
+                    </div>
 
-                {/* Controls */}
-                <div className="flex items-center gap-2">
+                    {nowPlaying.contentType === 'meditation' && (
+                        <button
+                            onClick={handleLike}
+                            className={`inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full transition-all ${isLiked
+                                ? 'bg-[#FFE7E5] text-[#FF3B30]'
+                                : 'bg-[#F4F4F5] text-[#7B8087] hover:bg-[#ECEDEF]'
+                                }`}
+                            aria-label="Like meditation"
+                        >
+                            <Heart className={`h-4 w-4 ${isLiked ? 'fill-[#FF3B30]' : ''}`} />
+                        </button>
+                    )}
+
                     <button
                         onClick={isPlaying ? pauseAudio : playAudio}
-                        className="p-2 rounded-full bg-primary hover:bg-primary/90 transition-colors"
+                        className="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary shadow-[0_10px_20px_rgba(43,114,114,0.24)] transition-all hover:scale-105 hover:bg-primary/90"
                         aria-label={isPlaying ? 'Pause' : 'Play'}
                     >
                         {isPlaying ? (
@@ -63,12 +105,17 @@ function MiniPlayer() {
                     </button>
 
                     <button
-                        onClick={closePlayer}
-                        className="p-2 rounded-full hover:bg-gray-100 transition-colors"
+                        onClick={() => {
+                            setDismissedTrackId(nowPlaying.id)
+                            window.sessionStorage.setItem('dismissedMiniPlayerId', nowPlaying.id)
+                        }}
+                        className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#F4F4F5] text-[#5F6368] transition-all hover:bg-[#E8E8EA]"
                         aria-label="Close"
                     >
-                        <X className="w-5 h-5 text-gray-600" />
+                        <X className="h-4 w-4" />
                     </button>
+
+
                 </div>
             </div>
         </div>

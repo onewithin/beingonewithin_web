@@ -1,15 +1,15 @@
 'use client'
 import React, { useState } from 'react'
-import { ListPlus } from 'lucide-react'
 import AddToPlaylistModal from './AddToPlaylistModal'
 
 interface AddToPlaylistButtonProps {
     meditationId: string
     meditationTitle: string
     contentType: 'meditation' | 'thought'
+    accentColor?: string
 }
 
-function AddToPlaylistButton({ meditationId, meditationTitle, contentType }: AddToPlaylistButtonProps) {
+function AddToPlaylistButton({ meditationId, meditationTitle, contentType, accentColor = '#1f2937' }: AddToPlaylistButtonProps) {
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     // Only show for meditations, not thoughts
@@ -19,10 +19,25 @@ function AddToPlaylistButton({ meditationId, meditationTitle, contentType }: Add
         <>
             <button
                 onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-primary text-primary rounded-full font-poppins-600 hover:bg-primary hover:text-white transition-colors shadow-sm"
+                style={{ borderColor: accentColor, color: accentColor }}
+                className="inline-flex items-center justify-center rounded-full p-2 hover:bg-gray-100 transition-colors"
+                aria-label="Add to playlist"
             >
-                <ListPlus className="w-5 h-5" />
-                <span>Add to Playlist</span>
+                <span
+                    aria-hidden
+                    className="inline-block h-8 w-8"
+                    style={{
+                        backgroundColor: '#2b7272',
+                        WebkitMaskImage: 'url(/icons/add_to_library.png)',
+                        WebkitMaskRepeat: 'no-repeat',
+                        WebkitMaskPosition: 'center',
+                        WebkitMaskSize: 'contain',
+                        maskImage: 'url(/icons/add_to_library.png)',
+                        maskRepeat: 'no-repeat',
+                        maskPosition: 'center',
+                        maskSize: 'contain',
+                    }}
+                />
             </button>
 
             <AddToPlaylistModal

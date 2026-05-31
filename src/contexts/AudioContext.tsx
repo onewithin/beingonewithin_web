@@ -22,7 +22,7 @@ interface AudioContextType {
     playAudio: () => void
     seekTo: (time: number) => void
     closePlayer: () => void
-    audioRef: React.RefObject<HTMLAudioElement>
+    audioRef: React.RefObject<HTMLAudioElement | null>
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined)
@@ -35,6 +35,22 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
+    const [hasUserInteracted, setHasUserInteracted] = useState(false)
+
+    const playWithAutoplayGuard = (audio: HTMLAudioElement | null) => {
+        if (!audio || !hasUserInteracted || document.hidden) return
+
+        const playPromise = audio.play()
+        if (playPromise !== undefined) {
+            playPromise.catch((error: unknown) => {
+                if (error instanceof DOMException && error.name === 'NotAllowedError') {
+                    return
+                }
+
+                console.error('Audio play error:', error)
+            })
+        }
+    }
 
     // Update audio src when nowPlaying changes
     useEffect(() => {
@@ -94,6 +110,23 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         }
     }, [volume])
 
+    // Browser autoplay policies require a user gesture before programmatic playback.
+    useEffect(() => {
+        const markInteraction = () => {
+            setHasUserInteracted(true)
+        }
+
+        document.addEventListener('pointerdown', markInteraction)
+        document.addEventListener('keydown', markInteraction)
+        document.addEventListener('touchstart', markInteraction)
+
+        return () => {
+            document.removeEventListener('pointerdown', markInteraction)
+            document.removeEventListener('keydown', markInteraction)
+            document.removeEventListener('touchstart', markInteraction)
+        }
+    }, [])
+
     // Initialize background music on mount
     useEffect(() => {
         const bgMusic = bgMusicRef.current
@@ -113,28 +146,40 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         const bgMusic = bgMusicRef.current
         if (!bgMusic) return
 
-        if (isPlaying && nowPlaying) {
-            console.log('Attempting to play background music...')
-            // Ensure audio is loaded before playing
-            const playPromise = bgMusic.play()
-            if (playPromise !== undefined) {
-                playPromise
-                    .then(() => console.log('Background music playing'))
-                    .catch((error) => {
-                        console.error('Background music play error:', error)
-                        // If autoplay is blocked, try again after a small delay
-                        setTimeout(() => {
-                            bgMusic.play()
-                                .then(() => console.log('Background music playing after retry'))
-                                .catch(err => console.error('Retry failed:', err))
-                        }, 100)
-                    })
-            }
+        if (document.hidden) {
+            bgMusic.pause()
+            return
+        }
+
+        const isMeditationPlaying = nowPlaying?.contentType === 'meditation' && isPlaying
+
+        if (!isMeditationPlaying) {
+            playWithAutoplayGuard(bgMusic)
         } else {
-            console.log('Pausing background music')
             bgMusic.pause()
         }
-    }, [isPlaying, nowPlaying])
+    }, [isPlaying, nowPlaying, hasUserInteracted])
+
+    // Stop all audio when the browser tab is not active.
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden) return
+
+            if (audioRef.current && !audioRef.current.paused) {
+                audioRef.current.pause()
+            }
+
+            if (bgMusicRef.current && !bgMusicRef.current.paused) {
+                bgMusicRef.current.pause()
+            }
+        }
+
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+        }
+    }, [])
 
     const pauseAudio = () => {
         if (audioRef.current) {
@@ -143,14 +188,15 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
 
     const playAudio = () => {
-        if (audioRef.current) {
-            audioRef.current.play()
-                .catch((error) => console.error('Play error:', error))
+        playWithAutoplayGuard(audioRef.current)
+
+        if (bgMusicRef.current && nowPlaying?.contentType === 'meditation') {
+            bgMusicRef.current.pause()
         }
-        // Also trigger background music when user clicks play
-        if (bgMusicRef.current && nowPlaying) {
-            bgMusicRef.current.play()
-                .catch((error) => console.error('Background music play error:', error))
+
+        // Keep background music available when the current session is not a meditation.
+        if (bgMusicRef.current && nowPlaying?.contentType !== 'meditation') {
+            playWithAutoplayGuard(bgMusicRef.current)
         }
     }
 

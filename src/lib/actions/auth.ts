@@ -3,7 +3,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
 const OTP_COOKIE_MAX_AGE_SECONDS = 600;
 const AUTH_COOKIE_MAX_AGE_SECONDS = 86400;
 const REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS = 2592000; // 30 days
@@ -63,12 +64,15 @@ async function attemptTokenRefresh(): Promise<string | null> {
   if (!refreshToken) return null;
 
   try {
-    const refreshResponse = await fetch(`${BACKEND_URL}/refresh-token`, {
-      method: "POST",
-      cache: "no-store",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
+    const refreshResponse = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/refresh-token`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      },
+    );
 
     if (!refreshResponse.ok) return null;
 
@@ -117,7 +121,7 @@ async function callBackend<T>(
 ): Promise<ApiResult<T>> {
   let response: Response;
   try {
-    response = await fetch(`${BACKEND_URL}${path}`, {
+    response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
       cache: "no-store",
       ...init,
       headers: {
@@ -140,7 +144,7 @@ async function callBackend<T>(
           ...(init?.headers as Record<string, string> | undefined),
           Authorization: `Bearer ${newToken}`,
         };
-        const retryResponse = await fetch(`${BACKEND_URL}${path}`, {
+        const retryResponse = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
           cache: "no-store",
           ...init,
           headers: retryHeaders,

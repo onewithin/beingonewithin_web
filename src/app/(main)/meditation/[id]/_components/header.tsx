@@ -6,9 +6,10 @@ import { useRouter } from 'next/navigation';
 
 interface HeaderProps {
     categoryName?: string;
+    textColor?: string;
 }
 
-function Header({ categoryName = 'Meditation' }: HeaderProps) {
+function Header({ categoryName = 'Meditation', textColor = '#1f2937' }: HeaderProps) {
     const router = useRouter();
 
     const handleBack = () => {
@@ -22,9 +23,11 @@ function Header({ categoryName = 'Meditation' }: HeaderProps) {
                 className='bg-white p-1 rounded-lg flex justify-center items-center cursor-pointer'
                 aria-label="Go back"
             >
-                <ChevronLeft />
+                <ChevronLeft style={{ color: textColor }} />
             </button>
-            <p className='font-poppins-600 text-[1rem] mx-2 text-white'>{categoryName}</p>
+            <p className='font-poppins-600 text-[1rem] mx-2' style={{ color: textColor }}>
+                {categoryName}
+            </p>
         </div>
     );
 }

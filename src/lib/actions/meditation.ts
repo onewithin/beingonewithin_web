@@ -2,7 +2,8 @@
 
 import { cookies } from "next/headers";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:3000";
+const NEXT_PUBLIC_BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:3000";
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -52,18 +53,21 @@ export async function updateMeditationWatchTime(
       return { success: false, error: "Not authenticated" };
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/meditation/watch-time`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/api/meditation/watch-time`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          id: watchHistoryId,
+          watchedSeconds,
+          completed,
+        }),
       },
-      body: JSON.stringify({
-        id: watchHistoryId,
-        watchedSeconds,
-        completed,
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -84,6 +88,53 @@ export async function updateMeditationWatchTime(
 }
 
 /**
+ * Start meditation session history when user actually presses play
+ */
+export async function startMeditationWatchSession(
+  meditationId: string,
+): Promise<{ success: boolean; watchHistoryId?: string; error?: string }> {
+  try {
+    const { token } = await getAuthContext();
+
+    if (!token) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    const response = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/api/meditation/watch-time/start`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ meditationId }),
+      },
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: errorData.message || "Failed to start meditation session",
+      };
+    }
+
+    const data = await response.json();
+    return {
+      success: true,
+      watchHistoryId: data?.history?.id,
+    };
+  } catch (error) {
+    console.error("Error starting meditation session:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
  * Like a meditation
  */
 export async function likeMeditation(
@@ -96,7 +147,7 @@ export async function likeMeditation(
       return { success: false, error: "Not authenticated" };
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/liked/like`, {
+    const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/liked/like`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -139,17 +190,20 @@ export async function unlikeMeditation(
       return { success: false, error: "Not authenticated" };
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/liked/dislike`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+    const response = await fetch(
+      `${NEXT_PUBLIC_BACKEND_URL}/api/liked/dislike`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          meditationId,
+        }),
       },
-      body: JSON.stringify({
-        userId,
-        meditationId,
-      }),
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

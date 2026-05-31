@@ -18,7 +18,7 @@ function BottomNav({ activeTab }: Props) {
     return (
         <>
             <MiniPlayer />
-            <div className="fixed inset-x-0 bottom-0 z-50 w-full md:w-[401px] p-2 left-1/2 transform -translate-x-1/2 bg-[#1F5D57] text-white flex items-center justify-between md:justify-center gap-2 md:gap-7 md:rounded-2xl shadow-lg md:bottom-4">
+            <div className="fixed inset-x-0 bottom-0  z-50 w-full md:w-[401px] p-2 left-1/2 transform -translate-x-1/2 bg-[#1F5D57] text-white flex items-center justify-between md:justify-center gap-2 md:gap-7 md:rounded-2xl shadow-lg md:bottom-4">
                 {/* Home */}
                 <Link href={'/home'}>
                     <NavItem icon={House} label="Home" active={activeTab === 'home'} />
