@@ -105,7 +105,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
     cookieStore.set("auth_token", refreshData.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: 86400,
       path: "/",
     });
@@ -114,7 +114,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
       cookieStore.set("refresh_token", refreshData.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: 2592000,
         path: "/",
       });
@@ -210,12 +210,17 @@ export async function getSubscriptionStatus(): Promise<
  */
 export async function createWebCheckout(
   planId: string,
+  options?: { successUrl?: string; cancelUrl?: string },
 ): Promise<ApiResult<CheckoutSessionData>> {
   return authenticatedFetch<CheckoutSessionData>(
     "/api/subscriptions/web-checkout",
     {
       method: "POST",
-      body: JSON.stringify({ planId }),
+      body: JSON.stringify({
+        planId,
+        successUrl: options?.successUrl,
+        cancelUrl: options?.cancelUrl,
+      }),
     },
   );
 }

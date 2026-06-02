@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { checkEmailAction, loginAction, oauthAuthenticateAction, resendOtpAction, verifyOtpAction } from '@/lib/actions/auth'
@@ -39,6 +39,32 @@ export default function SignIn() {
     const [otpMessage, setOtpMessage] = useState('')
     const [error, setError] = useState('')
     const otpInputs = useRef<(HTMLInputElement | null)[]>([])
+
+    useEffect(() => {
+        let isMounted = true
+
+        const redirectIfAuthenticated = async () => {
+            try {
+                const response = await fetch('/api/subscription-status', {
+                    method: 'GET',
+                    cache: 'no-store',
+                })
+
+                if (!isMounted) return
+                if (response.ok) {
+                    router.replace('/home')
+                }
+            } catch {
+                // If this fails, user remains on sign-in and can continue auth flow.
+            }
+        }
+
+        redirectIfAuthenticated()
+
+        return () => {
+            isMounted = false
+        }
+    }, [router])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

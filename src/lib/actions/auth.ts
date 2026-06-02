@@ -86,7 +86,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
     cookieStore.set("auth_token", refreshData.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
       path: "/",
     });
@@ -95,7 +95,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
       cookieStore.set("refresh_token", refreshData.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS,
         path: "/",
       });
@@ -393,7 +393,7 @@ export async function registerAction(
     cookieStore.set("otp_email", normalised, {
       httpOnly: true,
       maxAge: OTP_COOKIE_MAX_AGE_SECONDS,
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
     });
     cookieStore.set("otp_is_new", "true", {
@@ -405,7 +405,7 @@ export async function registerAction(
     cookieStore.set("otp_flow", "signup", {
       httpOnly: true,
       maxAge: OTP_COOKIE_MAX_AGE_SECONDS,
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
     });
 
@@ -448,7 +448,7 @@ export async function loginAction(
     cookieStore.set("otp_email", normalised, {
       httpOnly: true,
       maxAge: OTP_COOKIE_MAX_AGE_SECONDS,
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
     });
     cookieStore.set("otp_is_new", "false", {
@@ -460,7 +460,7 @@ export async function loginAction(
     cookieStore.set("otp_flow", "signin", {
       httpOnly: true,
       maxAge: OTP_COOKIE_MAX_AGE_SECONDS,
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
     });
 
@@ -524,7 +524,7 @@ export async function oauthAuthenticateAction(
     cookieStore.set("auth_token", response.data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
       path: "/",
     });
@@ -533,7 +533,7 @@ export async function oauthAuthenticateAction(
       cookieStore.set("refresh_token", response.data.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS,
         path: "/",
       });
@@ -601,7 +601,7 @@ export async function verifyOtpAction(
     cookieStore.set("auth_token", response.data.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: "lax",
       maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
       path: "/",
     });
@@ -610,7 +610,7 @@ export async function verifyOtpAction(
       cookieStore.set("refresh_token", response.data.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        sameSite: "lax",
         maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS,
         path: "/",
       });

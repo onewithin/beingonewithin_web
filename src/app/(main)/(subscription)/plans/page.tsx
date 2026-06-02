@@ -5,6 +5,8 @@ import { getSubscriptionPlans, getSubscriptionStatus, SubscriptionPlan, Subscrip
 import PlanCard from "./_components/plan-card"
 import Link from "next/link"
 import SubscriptionSSEListener from "@/components/subscription-sse-listener"
+import PaymentResultPopup from "./_components/payment-result-popup"
+import { Suspense } from "react"
 
 export default async function SubscriptionPlansPage() {
     // Check if user already has an active subscription
@@ -117,6 +119,11 @@ export default async function SubscriptionPlansPage() {
 
             {/* Real-time subscription updates via SSE */}
             <SubscriptionSSEListener />
+
+            {/* Payment result popup */}
+            <Suspense>
+                <PaymentResultPopup />
+            </Suspense>
 
             <BottomNav activeTab="home" />
         </div >

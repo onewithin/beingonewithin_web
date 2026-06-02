@@ -33,8 +33,13 @@ async function MeditationDetails({ params, searchParams }: PageProps) {
 
     if (isPremiumMeditation) {
         const subscriptionResult = await getSubscriptionStatus()
-        const status = subscriptionResult.ok ? subscriptionResult.data?.status : null
-        const hasPremiumAccess = status === 'ACTIVE' || status === 'TRIALING'
+        const data = subscriptionResult.ok ? subscriptionResult.data : null
+        const hasAccessFlag = (data as { hasAccessToPremium?: boolean; isPremium?: boolean } | null)?.hasAccessToPremium
+            ?? (data as { hasAccessToPremium?: boolean; isPremium?: boolean } | null)?.isPremium
+        const activeStatus = (data as { activeSubscription?: { status?: string | null } | null } | null)?.activeSubscription?.status ?? null
+        const hasPremiumAccess = typeof hasAccessFlag === 'boolean'
+            ? hasAccessFlag
+            : activeStatus === 'ACTIVE' || activeStatus === 'TRIALING'
 
         if (!hasPremiumAccess) {
             redirect('/plans')
