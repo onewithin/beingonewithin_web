@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ChevronLeft, FileText } from 'lucide-react'
+import { ChevronLeft, FileText, ShieldCheck } from 'lucide-react'
 import { PolicySection, EmptySection } from '@/app/(main)/terms/_components/PolicySection'
 
 const NEXT_PUBLIC_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000'
@@ -12,14 +12,12 @@ type PolicyDocument = {
     updatedAt: string
 }
 
-async function getTermsPolicy(): Promise<{ success: boolean; data: PolicyDocument | null; message: string }> {
+async function fetchPolicy(type: number): Promise<{ success: boolean; data: PolicyDocument | null; message: string }> {
     try {
-        const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/privacy-policy/2`, {
+        const response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}/api/privacy-policy/${type}`, {
             method: 'GET',
             cache: 'no-store',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
         })
 
         const json = (await response.json().catch(() => null)) as {
@@ -28,21 +26,20 @@ async function getTermsPolicy(): Promise<{ success: boolean; data: PolicyDocumen
         } | null
 
         if (!response.ok || !json?.data) {
-            return {
-                success: false,
-                data: null,
-                message: json?.message || 'Terms are currently unavailable.',
-            }
+            return { success: false, data: null, message: json?.message || 'Content is currently unavailable.' }
         }
 
         return { success: true, data: json.data, message: 'Loaded.' }
     } catch {
-        return { success: false, data: null, message: 'Unable to load terms right now.' }
+        return { success: false, data: null, message: 'Unable to load content right now.' }
     }
 }
 
 export default async function PublicTermsPage() {
-    const termsResult = await getTermsPolicy()
+    const [privacyResult, termsResult] = await Promise.all([
+        fetchPolicy(1),
+        fetchPolicy(2),
+    ])
 
     return (
         <div className="min-h-screen bg-mint-to-white px-4 py-5">
@@ -55,21 +52,38 @@ export default async function PublicTermsPage() {
                     >
                         <ChevronLeft className="h-5 w-5 text-secondary" />
                     </Link>
-                    <h1 className="text-heading text-[1rem] font-poppins-600">Terms &amp; Conditions</h1>
+                    <h1 className="text-heading text-[1rem] font-poppins-600">Terms &amp; Privacy</h1>
                 </div>
 
-                {termsResult.success && termsResult.data ? (
-                    <PolicySection
-                        icon={<FileText className="h-5 w-5" />}
-                        title="Terms &amp; Conditions"
-                        content={termsResult.data.content}
-                    />
-                ) : (
-                    <EmptySection
-                        title="Terms &amp; Conditions"
-                        message={termsResult.message}
-                    />
-                )}
+                <div id="terms">
+                    {termsResult.success && termsResult.data ? (
+                        <PolicySection
+                            icon={<FileText className="h-5 w-5" />}
+                            title="Terms &amp; Conditions"
+                            content={termsResult.data.content}
+                        />
+                    ) : (
+                        <EmptySection
+                            title="Terms &amp; Conditions"
+                            message={termsResult.message}
+                        />
+                    )}
+                </div>
+
+                <div id="privacy">
+                    {privacyResult.success && privacyResult.data ? (
+                        <PolicySection
+                            icon={<ShieldCheck className="h-5 w-5" />}
+                            title="Privacy Policy"
+                            content={privacyResult.data.content}
+                        />
+                    ) : (
+                        <EmptySection
+                            title="Privacy Policy"
+                            message={privacyResult.message}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     )

@@ -71,7 +71,10 @@ export type Transaction = {
 
 export type CheckoutSessionData = {
   sessionId: string;
-  url: string;
+  paymentUrl: string;
+  url?: string;
+  success?: boolean;
+  message?: string;
 };
 
 async function attemptTokenRefresh(): Promise<string | null> {
@@ -189,7 +192,7 @@ export async function getSubscriptionPlans(): Promise<
   ApiResult<SubscriptionPlan[] | Subscription>
 > {
   return authenticatedFetch<SubscriptionPlan[] | Subscription>(
-    "/api/subscription/plans",
+    "/api/subscriptions/plans",
   );
 }
 
@@ -199,7 +202,7 @@ export async function getSubscriptionPlans(): Promise<
 export async function getSubscriptionStatus(): Promise<
   ApiResult<Subscription | null>
 > {
-  return authenticatedFetch<Subscription | null>("/api/subscription/status");
+  return authenticatedFetch<Subscription | null>("/api/subscriptions/status");
 }
 
 /**
@@ -209,7 +212,7 @@ export async function createWebCheckout(
   planId: string,
 ): Promise<ApiResult<CheckoutSessionData>> {
   return authenticatedFetch<CheckoutSessionData>(
-    "/api/subscription/web-checkout",
+    "/api/subscriptions/web-checkout",
     {
       method: "POST",
       body: JSON.stringify({ planId }),
@@ -224,7 +227,7 @@ export async function createAppCheckout(
   planId: string,
 ): Promise<ApiResult<CheckoutSessionData>> {
   return authenticatedFetch<CheckoutSessionData>(
-    "/api/subscription/app-checkout",
+    "/api/subscriptions/app-checkout",
     {
       method: "POST",
       body: JSON.stringify({ planId }),
@@ -238,7 +241,7 @@ export async function createAppCheckout(
 export async function cancelSubscription(): Promise<
   ApiResult<{ message: string }>
 > {
-  return authenticatedFetch<{ message: string }>("/api/subscription/cancel", {
+  return authenticatedFetch<{ message: string }>("/api/subscriptions/cancel", {
     method: "POST",
   });
 }
@@ -266,7 +269,7 @@ export async function getTransactionHistory(params?: {
   if (params?.type) queryParams.append("type", params.type);
 
   const query = queryParams.toString();
-  const path = `/api/subscription/transactions${query ? `?${query}` : ""}`;
+  const path = `/api/subscriptions/transactions${query ? `?${query}` : ""}`;
 
   return authenticatedFetch<{
     transactions: Transaction[];
@@ -283,6 +286,6 @@ export async function validatePremiumAccess(): Promise<
   ApiResult<{ message: string }>
 > {
   return authenticatedFetch<{ message: string }>(
-    "/api/subscription/validate-premium",
+    "/api/subscriptions/validate-premium",
   );
 }

@@ -26,6 +26,7 @@ export default function RegisterPage() {
     const [isVerifyingOtp, setIsVerifyingOtp] = useState(false)
     const [isResendingOtp, setIsResendingOtp] = useState(false)
     const [socialAuthLoadingProvider, setSocialAuthLoadingProvider] = useState<SocialProvider | null>(null)
+    const [showTrialChoice, setShowTrialChoice] = useState(false)
     const [otpMessage, setOtpMessage] = useState('')
     const [error, setError] = useState('')
     const otpInputs = useRef<(HTMLInputElement | null)[]>([])
@@ -118,7 +119,7 @@ export default function RegisterPage() {
             return
         }
 
-        router.replace('/home')
+        setShowTrialChoice(true)
     }
 
     const handleResendOtp = async () => {
@@ -252,7 +253,7 @@ export default function RegisterPage() {
                             onSubmit={handleSubmit}
                             isLoading={isLoading}
                             submitDisabled={!agreedToTerms}
-                            submitLabel="Register"
+                            submitLabel="Continue"
                             showSocialAuth
                             socialAuthLoadingProvider={socialAuthLoadingProvider}
                             onGoogleClick={handleGoogleClick}
@@ -277,11 +278,19 @@ export default function RegisterPage() {
                                                 I agree with the{' '}
                                             </label>
                                             <Link
-                                                href="/terms-and-conditions"
+                                                href="/terms-and-conditions#terms"
                                                 className="font-poppins-600 text-secondary underline"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 Terms and Conditions
+                                            </Link>
+                                            {' '}and{' '}
+                                            <Link
+                                                href="/terms-and-conditions#privacy"
+                                                className="font-poppins-600 text-secondary underline"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                Privacy Policy
                                             </Link>
                                         </span>
                                     </div>
@@ -331,7 +340,7 @@ export default function RegisterPage() {
                             <Button
                                 className="h-12 mt-4 bg-secondary hover:bg-landing-button-hover text-white font-poppins-600 text-[0.9375rem] rounded-xl w-full md:w-[20.9375rem]"
                                 onClick={handleVerifyOtp}
-                                disabled={isVerifyingOtp || otpDigits.join('').length < 6}
+                                disabled={isVerifyingOtp || otpDigits.join('').length < 6 || showTrialChoice}
                             >
                                 {isVerifyingOtp ? 'Verifying…' : 'Verify OTP'}
                             </Button>
@@ -349,6 +358,7 @@ export default function RegisterPage() {
                             <button
                                 onClick={() => {
                                     setIsOtpStep(false)
+                                    setShowTrialChoice(false)
                                     setOtpDigits(['', '', '', '', '', ''])
                                     setError('')
                                     setOtpMessage('')
@@ -364,7 +374,11 @@ export default function RegisterPage() {
                 <div className="hidden lg:flex justify-center">
                     <QuestionCard
                         title="Calm Voices That Truly Soothe"
-                        showButton={false}
+                        buttonText="Continue with Free Trial"
+                        onButtonClick={() => router.replace('/plans')}
+                        showButton={showTrialChoice}
+                        skipOption
+                        skipDisabled={!showTrialChoice}
                         description="Our audio is crafted with therapeutic voices and tones designed to emotionally ease your mind."
                         image={<Image src={'/icons/meditation-2.png'} height={100} width={100} alt="icon" />}
                     />

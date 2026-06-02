@@ -26,33 +26,36 @@ export default async function TermsPage() {
                 </div>
 
                 {/* Terms & Conditions */}
-                {termsResult.success && termsResult.data ? (
-                    <PolicySection
-                        icon={<FileText className="h-5 w-5" />}
-                        title="Terms &amp; Conditions"
-                        content={termsResult.data.content}
-                    />
-                ) : (
-                    <EmptySection
-                        title="Terms &amp; Conditions"
-                        message={termsResult.message}
-                    />
-                )}
-
+                <div id="terms">
+                    {termsResult.success && termsResult.data ? (
+                        <PolicySection
+                            icon={<FileText className="h-5 w-5" />}
+                            title="Terms &amp; Conditions"
+                            content={termsResult.data.content}
+                        />
+                    ) : (
+                        <EmptySection
+                            title="Terms &amp; Conditions"
+                            message={termsResult.message}
+                        />
+                    )}
+                </div>
 
                 {/* Privacy Policy */}
-                {privacyResult.success && privacyResult.data ? (
-                    <PolicySection
-                        icon={<ShieldCheck className="h-5 w-5" />}
-                        title="Privacy Policy"
-                        content={privacyResult.data.content}
-                    />
-                ) : (
-                    <EmptySection
-                        title="Privacy Policy"
-                        message={privacyResult.message}
-                    />
-                )}
+                <div id="privacy">
+                    {privacyResult.success && privacyResult.data ? (
+                        <PolicySection
+                            icon={<ShieldCheck className="h-5 w-5" />}
+                            title="Privacy Policy"
+                            content={privacyResult.data.content}
+                        />
+                    ) : (
+                        <EmptySection
+                            title="Privacy Policy"
+                            message={privacyResult.message}
+                        />
+                    )}
+                </div>
 
             </div>
         </div>

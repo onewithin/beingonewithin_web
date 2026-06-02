@@ -35,9 +35,11 @@ export default function PlanCard({ plan, isMonthly }: PlanCardProps) {
         setLoading(true);
         try {
             const result = await createWebCheckout(plan.id);
-            if (result.ok && result.data?.url) {
+            const checkoutUrl = result.data?.paymentUrl || result.data?.url;
+
+            if (result.ok && checkoutUrl) {
                 // Redirect to Stripe checkout
-                window.location.href = result.data.url;
+                window.location.href = checkoutUrl;
             } else {
                 alert(result.message || "Failed to create checkout session");
                 setLoading(false);

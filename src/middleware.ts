@@ -13,7 +13,6 @@ const PROTECTED_PREFIXES = [
   "/account",
   "/notifications",
   "/support",
-  "/terms",
   "/onboarding-setup",
 ];
 

@@ -45,6 +45,7 @@ export type HomeMeditation = {
   title: string;
   duration?: number | string | null;
   thumbnail?: string | null;
+  isPremium?: boolean;
   isLiked?: boolean;
   link?: string | null;
   subcategoryId?: string | number | null;

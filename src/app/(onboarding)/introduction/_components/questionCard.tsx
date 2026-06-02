@@ -16,6 +16,7 @@ type QuestionCardProps = {
     image?: React.ReactNode
     className?: string
     skipOption?: boolean
+    skipDisabled?: boolean
     loading?: boolean
 }
 
@@ -28,6 +29,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
     image,
     className = "",
     skipOption = false,
+    skipDisabled = false,
     loading = false,
 }) => {
     return (
@@ -53,7 +55,11 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 {
                     skipOption &&
                     <p className='text-[#1F5D57] w-full mt-2 lg:mt-4 cursor-pointer text-center font-poppins-600 text-[16px]'>
-                        <Link href="/home">Skip for now</Link>
+                        {skipDisabled ? (
+                            <span className='opacity-50 cursor-not-allowed'>Skip as of now</span>
+                        ) : (
+                            <Link href="/home">Skip as of now</Link>
+                        )}
                     </p>
                 }
             </CardContent>

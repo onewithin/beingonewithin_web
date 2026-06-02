@@ -3,8 +3,9 @@ import Header from './_components/header'
 import AudioImage from './_components/image'
 import AudioProgressBar from './_components/audio'
 import { getMeditationOrThoughtDetail } from '@/lib/server/meditation'
-import { notFound } from 'next/navigation'
-import { formatSecondsMMSS, getDarkerColor } from '@/lib/utils'
+import { getSubscriptionStatus } from '@/lib/actions/subscription'
+import { notFound, redirect } from 'next/navigation'
+import { formatSecondsMMSS, formatMinutes, getDarkerColor } from '@/lib/utils'
 
 interface PageProps {
     params: Promise<{ id: string }>
@@ -24,6 +25,21 @@ async function MeditationDetails({ params, searchParams }: PageProps) {
     }
 
     const { data, type: contentType, watchHistory } = result
+
+    const isPremiumMeditation =
+        contentType === 'meditation' &&
+        'isPremium' in data &&
+        Boolean(data.isPremium)
+
+    if (isPremiumMeditation) {
+        const subscriptionResult = await getSubscriptionStatus()
+        const status = subscriptionResult.ok ? subscriptionResult.data?.status : null
+        const hasPremiumAccess = status === 'ACTIVE' || status === 'TRIALING'
+
+        if (!hasPremiumAccess) {
+            redirect('/plans')
+        }
+    }
 
     // Extract common properties
     const title = data.title || 'Untitled'
@@ -53,7 +69,9 @@ async function MeditationDetails({ params, searchParams }: PageProps) {
             ? '✨ Daily Thoughts'
             : 'Meditation'
 
-    const formattedDuration = formatSecondsMMSS(data.duration ?? null)
+    const formattedDuration = contentType === 'thought'
+        ? formatMinutes(data.duration)
+        : formatSecondsMMSS(data.duration ?? null)
 
     const metaLabel = contentType === 'thought'
         ? `${formattedDuration} • Daily Thought`

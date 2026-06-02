@@ -30,7 +30,7 @@ export function useSubscriptionSSE(enabled: boolean = true) {
     }
 
     // EventSource will automatically send cookies with withCredentials
-    const url = `${NEXT_PUBLIC_BACKEND_URL}/api/subscription/sse/subscribe`;
+    const url = `${NEXT_PUBLIC_BACKEND_URL}/api/subscriptions/sse/subscribe`;
 
     console.log("Connecting to SSE:", url);
 

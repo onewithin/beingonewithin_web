@@ -158,6 +158,7 @@ function LikedInfiniteList({ initialMeditations, pageSize }: Props) {
                             imageSrc={meditation.thumbnail || undefined}
                             imageAlt={meditation.title}
                             meditationId={meditation.id}
+                            isPremium={Boolean(meditation.isPremium)}
                             initialLiked={true}
                         />
                     </Link>

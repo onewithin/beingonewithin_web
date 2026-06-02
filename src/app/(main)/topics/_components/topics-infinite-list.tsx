@@ -89,6 +89,7 @@ function TopicsInfiniteList({ topicId, initialMeditations, initialHasMore, pageS
                         imageSrc={meditation.thumbnail || undefined}
                         imageAlt={meditation.title}
                         meditationId={meditation.id}
+                        isPremium={Boolean(meditation.isPremium)}
                         initialLiked={Boolean(meditation.isLiked)}
                     />
                 </Link>

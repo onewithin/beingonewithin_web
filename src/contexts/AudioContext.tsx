@@ -38,7 +38,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const [hasUserInteracted, setHasUserInteracted] = useState(false)
 
     const playWithAutoplayGuard = (audio: HTMLAudioElement | null) => {
-        if (!audio || !hasUserInteracted || document.hidden) return
+        if (!audio || !hasUserInteracted) return
 
         const playPromise = audio.play()
         if (playPromise !== undefined) {
@@ -135,30 +135,21 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         // Set background music volume to 30%
         bgMusic.volume = 0.3
 
+        // Ensure background music loops continuously
+        bgMusic.loop = true
+
         // Preload the background music
         bgMusic.load()
 
-        console.log('Background music initialized:', bgMusic.src)
     }, [])
 
-    // Control background music based on meditation play state
+    // Keep background music running continuously once user interaction is available.
     useEffect(() => {
         const bgMusic = bgMusicRef.current
         if (!bgMusic) return
 
-        if (document.hidden) {
-            bgMusic.pause()
-            return
-        }
-
-        const isMeditationPlaying = nowPlaying?.contentType === 'meditation' && isPlaying
-
-        if (!isMeditationPlaying) {
-            playWithAutoplayGuard(bgMusic)
-        } else {
-            bgMusic.pause()
-        }
-    }, [isPlaying, nowPlaying, hasUserInteracted])
+        playWithAutoplayGuard(bgMusic)
+    }, [hasUserInteracted])
 
     // Stop all audio when the browser tab is not active.
     useEffect(() => {
@@ -169,9 +160,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
                 audioRef.current.pause()
             }
 
-            if (bgMusicRef.current && !bgMusicRef.current.paused) {
-                bgMusicRef.current.pause()
-            }
         }
 
         document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -190,12 +178,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const playAudio = () => {
         playWithAutoplayGuard(audioRef.current)
 
-        if (bgMusicRef.current && nowPlaying?.contentType === 'meditation') {
-            bgMusicRef.current.pause()
-        }
-
-        // Keep background music available when the current session is not a meditation.
-        if (bgMusicRef.current && nowPlaying?.contentType !== 'meditation') {
+        if (bgMusicRef.current) {
             playWithAutoplayGuard(bgMusicRef.current)
         }
     }
@@ -210,10 +193,6 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         if (audioRef.current) {
             audioRef.current.pause()
             audioRef.current.currentTime = 0
-        }
-        if (bgMusicRef.current) {
-            bgMusicRef.current.pause()
-            bgMusicRef.current.currentTime = 0
         }
         setNowPlaying(null)
         setIsPlaying(false)

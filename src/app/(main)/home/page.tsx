@@ -1,16 +1,18 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import BottomNav from '@/components/bottomNav'
-import { CircleAlert, LockKeyholeOpen, LockOpen, Mic, MoveRight, Play, Sun } from 'lucide-react'
+import { CircleAlert, LockOpen, MoveRight, Play, Sun } from 'lucide-react'
 import Link from 'next/link'
 import { getHomeData, getProfileData } from '@/lib/server/home'
 import { colorToPillClass, formatMinutes, formatToMMSS, getDarkerColor } from '@/lib/utils'
+import { getSubscriptionStatus } from '@/lib/actions/subscription'
 import LazyAudioCard from '@/components/lazy-audio-card'
 import LocalGreeting from './_components/local-greeting'
 import Image from 'next/image'
 
 async function Home() {
-    const [homeData, profile] = await Promise.all([getHomeData(), getProfileData()])
+    const [homeData, profile, subscriptionResult] = await Promise.all([getHomeData(), getProfileData(), getSubscriptionStatus()])
+    const subscription = subscriptionResult.ok ? subscriptionResult.data : null
     const listenAgain = homeData.listenAgain.slice(0, 5)
     const categories = homeData.categories.slice(0, 4)
     const topics = homeData.topics.slice(0, 12)
@@ -214,6 +216,7 @@ async function Home() {
                                             imageSrc={meditation.thumbnail || undefined}
                                             imageAlt={meditation.title}
                                             meditationId={meditation.id}
+                                            isPremium={Boolean(meditation.isPremium)}
                                             initialLiked={Boolean(meditation.isLiked)}
                                         />
                                     </Link>
@@ -235,27 +238,27 @@ async function Home() {
                     <section className='w-full bg-[#DDF3E5] p-5 rounded-2xl my-16 mb-32 lg:mb-28'>
                         <div>
                             <LockOpen className='h-6 w-6 text-secondary' />
-                            <p className='font-poppins-600 text-secondary text-[1.125rem]'>Unlock beingOnwith Premium</p>
-                            <p className='font-poppins-400 text-secondary text-[0.75rem]'>Experience deeper rest, healing, and clarity anytime you need.</p>
+                            <p className='font-poppins-600 mt-2 text-secondary text-[1.125rem]'>Unlock beingOnwith Premium</p>
+                            <p className='font-poppins-400  text-secondary text-[0.75rem]'>Experience deeper rest, healing, and clarity anytime you need.</p>
                         </div>
 
-                        <div className='font-poppins-600 text-secondary text-[0.75rem] my-4'>
-                            <p className='mb-4'>What You Get</p>
-                            <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 xl:max-w-[75rem] xl:mx-auto'>
+                        <div className='font-poppins-600 text-secondary text-[0.75rem] my-5'>
+                            <p className='mb-4 text-[14px]'>What You Get</p>
+                            <div className='grid grid-cols-2 text-[14px] lg:grid-cols-4 gap-4 xl:max-w-[75rem] xl:mx-auto'>
                                 <div className='flex items-center gap-2'>
-                                    <LockKeyholeOpen className='h-5 w-5 text-secondary' />
+                                    <Image src='/icons/access.png' alt='Full Access' width={20} height={20} className='h-5 w-5' />
                                     <p>Full access to all meditations</p>
                                 </div>
                                 <div className='flex items-center gap-2'>
-                                    <LockKeyholeOpen className='h-5 w-5 text-secondary' />
+                                    <Image src='/icons/audios.png' alt='Sleep Audios' width={20} height={20} className='h-5 w-5' />
                                     <p>Exclusive sleep and rest audios</p>
                                 </div>
                                 <div className='flex items-center gap-2'>
-                                    <Mic className='h-5 w-5 text-secondary' />
+                                    <Image src='/icons/mic.png' alt='Weekly Content' width={20} height={20} className='h-5 w-5' />
                                     <p>New weekly content</p>
                                 </div>
                                 <div className='flex items-center gap-2'>
-                                    <LockKeyholeOpen className='h-5 w-5 text-secondary' />
+                                    <Image src='/icons/download.png' alt='Download Offline' width={20} height={20} className='h-5 w-5' />
                                     <p>Download and listen offline</p>
                                 </div>
                             </div>
@@ -263,9 +266,20 @@ async function Home() {
 
                         <Link href='/plans'>
                             <Button className='w-full font-poppins-600 text-[1rem] p-5 mt-3 text-center'>
-                                Subscribe Now <MoveRight className='!w-5 !h-5 ml-2' />
+                                Subscribe Now
                             </Button>
                         </Link>
+
+                        {subscription?.currentPeriodEnd && (
+                            <p className='font-poppins-400 text-secondary text-[0.75rem] text-center mt-3'>
+                                {subscription.status === 'TRIALING'
+                                    ? `Free trial ends on ${new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+                                    : subscription.status === 'ACTIVE'
+                                        ? `Current plan renews on ${new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+                                        : null
+                                }
+                            </p>
+                        )}
                     </section>
                 </div>
             </div >
