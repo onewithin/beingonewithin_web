@@ -2,6 +2,7 @@ import {
     Camera,
 } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import Header from "./_components/header"
 import MenuItem from "./_components/menuItem"
@@ -55,9 +56,14 @@ export default async function ProfilePage() {
                                     </div>
                                 )}
                             </div>
-                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 bg-[#1f5d57] rounded-md p-1 border-2 border-white" title="Profile photo editing coming soon">
+                            <Link
+                                href="/account"
+                                className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 bg-[#1f5d57] rounded-md p-1 border-2 border-white"
+                                title="Edit profile"
+                                aria-label="Edit profile"
+                            >
                                 <Camera className="h-5 w-4 text-white" />
-                            </div>
+                            </Link>
                         </div>
                         <h2 className="text-[#484848] text-2xl font-sniglet-400 mt-8 text-[24px] ">{profileName}</h2>
                         <p className="text-[#7E7E7E] mt-1 text-sm font-poppins-400">{profileEmail}</p>
