@@ -8,6 +8,11 @@ function Header() {
     const router = useRouter();
 
     const handleBack = () => {
+        if (typeof document !== 'undefined' && document.referrer.includes('checkout.stripe.com')) {
+            router.replace('/profile');
+            return;
+        }
+
         router.back();
     };
 

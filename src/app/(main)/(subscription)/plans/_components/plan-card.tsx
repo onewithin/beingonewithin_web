@@ -62,6 +62,39 @@ function TrialPopup({
     return createPortal(modal, document.body);
 }
 
+function AlreadySubscribedPopup({
+    onClose,
+}: {
+    onClose: () => void;
+}) {
+    const modal = (
+        <div
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
+            onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+        >
+            <div className="relative w-[90%] max-w-sm rounded-[30px] bg-white p-6 shadow-2xl flex flex-col items-center gap-0">
+                <h2 className="font-sniglet-400 text-[1.25rem] text-[#1F5D57] text-center">
+                    You are already subscribed
+                </h2>
+
+                <p className="mt-3 font-poppins-400 text-[0.875rem] text-[#484848] text-center leading-relaxed">
+                    Your premium subscription is currently active. You can manage or review it from your subscription status page.
+                </p>
+
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="mt-6 w-full rounded-2xl bg-[#1F5D57] py-3 font-poppins-600 text-white text-[0.9375rem] hover:bg-[#174d48] transition-colors"
+                >
+                    Okay
+                </button>
+            </div>
+        </div>
+    );
+
+    return createPortal(modal, document.body);
+}
+
 type PlanCardProps = {
     plan: SubscriptionPlan;
     isMonthly: boolean;
@@ -86,6 +119,7 @@ const planColors = {
 export default function PlanCard({ plan, isMonthly, disableSubscribe = false }: PlanCardProps) {
     const [loading, setLoading] = useState(false);
     const [showTrialPopup, setShowTrialPopup] = useState(false);
+    const [showAlreadySubscribedPopup, setShowAlreadySubscribedPopup] = useState(false);
     const router = useRouter();
     const colors = isMonthly ? planColors.monthly : planColors.yearly;
 
@@ -113,7 +147,10 @@ export default function PlanCard({ plan, isMonthly, disableSubscribe = false }: 
     };
 
     const handleSubscribe = () => {
-        if (disableSubscribe) return;
+        if (disableSubscribe) {
+            setShowAlreadySubscribedPopup(true);
+            return;
+        }
 
         if (plan.trialDays && plan.trialDays > 0) {
             setShowTrialPopup(true);
@@ -143,6 +180,11 @@ export default function PlanCard({ plan, isMonthly, disableSubscribe = false }: 
 
     return (
         <>
+            {showAlreadySubscribedPopup && (
+                <AlreadySubscribedPopup
+                    onClose={() => setShowAlreadySubscribedPopup(false)}
+                />
+            )}
             {showTrialPopup && (
                 <TrialPopup
                     trialDays={plan.trialDays!}
@@ -183,7 +225,7 @@ export default function PlanCard({ plan, isMonthly, disableSubscribe = false }: 
                     </div>
                     <Button
                         onClick={handleSubscribe}
-                        disabled={loading || disableSubscribe}
+                        disabled={loading}
                         className={`w-full font-poppins-600 px-6 py-5 ${colors.button} text-white font-semibold rounded-xl mb-4`}
                     >
                         {getButtonText()}

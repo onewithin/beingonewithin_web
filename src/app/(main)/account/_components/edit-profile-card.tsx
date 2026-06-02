@@ -41,6 +41,8 @@ export default function EditProfileCard({
     const photoDirty = photoFile !== null
     const isDirty = nameDirty || photoDirty
     const isSaving = isUploadingPhoto || isSavingName
+    const normalizedPlanLabel = planLabel.trim().toLowerCase()
+    const isPremiumPlan = normalizedPlanLabel.includes('premium')
 
     const initial = currentName.charAt(0).toUpperCase() || 'U'
 
@@ -220,9 +222,10 @@ export default function EditProfileCard({
                             variant="outline"
                             size="sm"
                             className="shrink-0 border-secondary text-secondary hover:bg-surface-tint font-poppins-600 rounded-xl"
+                            disabled={isPremiumPlan}
                             onClick={() => router.push('/plans')}
                         >
-                            Upgrade
+                            {isPremiumPlan ? 'Premium' : 'Upgrade'}
                         </Button>
                     </div>
                 </div>
