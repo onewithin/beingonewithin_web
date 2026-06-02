@@ -1,10 +1,17 @@
 "use client"
 
 import { deletePlaylist, updatePlaylist } from '@/lib/actions/playlist'
-import { cn } from '@/lib/utils';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useRef, useState } from 'react';
-import { MoreHorizontal, Pencil, Trash2, X } from 'lucide-react';
+import { cn } from '@/lib/utils'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useRef, useState } from 'react'
+import { Pencil, Trash2, X } from 'lucide-react'
+import Image from 'next/image'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 type BadgeItem = {
     id: string
@@ -12,10 +19,10 @@ type BadgeItem = {
     count: number
 }
 
-const defaultTextColor = 'text-[#2B7272]';
-const defaultBgColor = 'bg-white';
-const selectedTextColor = 'text-white';
-const selectedBgColor = 'bg-[#2B7272]';
+const defaultTextColor = 'text-[#2B7272]'
+const defaultBgColor = 'bg-white'
+const selectedTextColor = 'text-white'
+const selectedBgColor = 'bg-[#2B7272]'
 
 type Props = {
     badges: BadgeItem[]
@@ -27,19 +34,29 @@ export default function BadgeSelector({ badges, selectedBadgeId }: Props) {
     const pathname = usePathname()
     const searchParams = useSearchParams()
     const containerRef = useRef<HTMLDivElement | null>(null)
-    const actionMenuRef = useRef<HTMLDivElement | null>(null)
     const [badgeItems, setBadgeItems] = useState(badges)
     const [activeBadgeId, setActiveBadgeId] = useState(selectedBadgeId)
-    const [actionBadge, setActionBadge] = useState<BadgeItem | null>(null)
     const [renameBadge, setRenameBadge] = useState<BadgeItem | null>(null)
     const [deleteBadge, setDeleteBadge] = useState<BadgeItem | null>(null)
     const [renameValue, setRenameValue] = useState('')
     const [manageError, setManageError] = useState('')
     const [isSaving, setIsSaving] = useState(false)
+    const playlistQuerySnapshot = searchParams.toString()
 
     useEffect(() => {
         setActiveBadgeId(selectedBadgeId)
     }, [selectedBadgeId])
+
+    useEffect(() => {
+        if (!pathname || badgeItems.length === 0) return
+
+        // Prefetch first few library tabs for snappier switching.
+        badgeItems.slice(0, 4).forEach((badge) => {
+            const params = new URLSearchParams(playlistQuerySnapshot)
+            params.set('playlistId', badge.id)
+            router.prefetch(`${pathname}?${params.toString()}`)
+        })
+    }, [badgeItems, pathname, router, playlistQuerySnapshot])
 
     useEffect(() => {
         // Keep optimistic badges (e.g., just-created library) until server props include them.
@@ -63,34 +80,9 @@ export default function BadgeSelector({ badges, selectedBadgeId }: Props) {
         })
     }, [activeBadgeId, badgeItems])
 
-    useEffect(() => {
-        const onPointerDown = (event: MouseEvent) => {
-            if (!actionBadge) return
-
-            if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
-                setActionBadge(null)
-            }
-        }
-
-        document.addEventListener('mousedown', onPointerDown)
-        return () => document.removeEventListener('mousedown', onPointerDown)
-    }, [actionBadge])
-
-    const openActionModal = (badge: BadgeItem) => {
-        setActionBadge((prev) => (prev?.id === badge.id ? null : badge))
-        setManageError('')
-    }
-
-    const closeActionModal = () => {
-        setActionBadge(null)
-    }
-
-    const openRenameModal = () => {
-        if (!actionBadge) return
-
-        setRenameBadge(actionBadge)
-        setRenameValue(actionBadge.label)
-        setActionBadge(null)
+    const openRenameModal = (badge: BadgeItem) => {
+        setRenameBadge(badge)
+        setRenameValue(badge.label)
         setManageError('')
     }
 
@@ -100,11 +92,8 @@ export default function BadgeSelector({ badges, selectedBadgeId }: Props) {
         setManageError('')
     }
 
-    const openDeleteModal = () => {
-        if (!actionBadge) return
-
-        setDeleteBadge(actionBadge)
-        setActionBadge(null)
+    const openDeleteModal = (badge: BadgeItem) => {
+        setDeleteBadge(badge)
         setManageError('')
     }
 
@@ -234,68 +223,74 @@ export default function BadgeSelector({ badges, selectedBadgeId }: Props) {
                         <button
                             type='button'
                             data-badge-id={id}
+                            onMouseEnter={() => {
+                                const params = new URLSearchParams(playlistQuerySnapshot)
+                                params.set('playlistId', id)
+                                router.prefetch(`${pathname}?${params.toString()}`)
+                            }}
                             onClick={() => {
-                                closeActionModal()
                                 setActiveBadgeId(id)
                                 window.dispatchEvent(new CustomEvent('library:playlist-switch-start', { detail: id }))
 
-                                const params = new URLSearchParams(searchParams.toString())
+                                const params = new URLSearchParams(playlistQuerySnapshot)
                                 params.set('playlistId', id)
                                 router.push(`${pathname}?${params.toString()}`, { scroll: false })
                             }}
                             className={cn(
                                 'cursor-pointer rounded-full font-poppins-400 text-[12px] px-3 py-1 flex items-center gap-2',
-                                isSelected ? `${selectedBgColor} ${selectedTextColor}` : `${defaultBgColor} ${defaultTextColor}`
+                                isSelected ? `${selectedBgColor} ${selectedTextColor}` : `${defaultBgColor} ${defaultTextColor}`,
                             )}
                         >
                             {label}
                             <span
                                 className={cn(
                                     'h-4 w-4 flex justify-center items-center rounded-sm font-poppins-600 text-[12px] px-2',
-                                    isSelected ? `${defaultBgColor} ${defaultTextColor}` : 'bg-[#DEF4E6] text-[#2B7272]'
+                                    isSelected ? `${defaultBgColor} ${defaultTextColor}` : 'bg-[#DEF4E6] text-[#2B7272]',
                                 )}
                             >
                                 {count}
                             </span>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        type='button'
+                                        className={cn(
+                                            'rounded-full p-1 transition-colors',
+                                            isSelected ? 'text-white hover:bg-white/30' : 'text-[#2B7272] hover:bg-[#EAF7F4]',
+                                        )}
+                                        aria-label={`Manage ${label}`}
+                                    >
+                                        <Image
+                                            src='/icons/settings.png'
+                                            alt='Manage playlist'
+                                            width={16}
+                                            height={16}
+                                            className={isSelected ? 'brightness-0 invert' : ''}
+                                        />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align='end'>
+                                    <DropdownMenuItem
+                                        onSelect={() => openRenameModal({ id, label, count })}
+                                        className='text-secondary'
+                                    >
+                                        <Pencil className='h-4 w-4' />
+                                        Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        onSelect={() => openDeleteModal({ id, label, count })}
+                                        className='text-[#B42318] focus:bg-[#FFF1F0]'
+                                    >
+                                        <Trash2 className='h-4 w-4' />
+                                        Delete
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </button>
 
-                        <button
-                            type='button'
-                            onClick={(event) => {
-                                event.stopPropagation()
-                                openActionModal({ id, label, count })
-                            }}
-                            className='rounded-full p-1 text-[#2B7272] hover:bg-[#EAF7F4]'
-                            aria-label={`Manage ${label}`}
-                        >
-                            <MoreHorizontal className='h-4 w-4' />
-                        </button>
 
-                        {actionBadge?.id === id && (
-                            <div
-                                ref={actionMenuRef}
-                                className='absolute right-0 top-[calc(100%+0.35rem)] z-50 min-w-[9.5rem] rounded-xl border border-[#D6DFDC] bg-white p-1 shadow-[0_10px_30px_rgba(31,93,87,0.14)]'
-                            >
-                                <button
-                                    type='button'
-                                    onClick={openRenameModal}
-                                    className='flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-poppins-600 text-secondary hover:bg-[#F7FAF9]'
-                                >
-                                    <Pencil className='h-4 w-4' />
-                                    Rename
-                                </button>
-                                <button
-                                    type='button'
-                                    onClick={openDeleteModal}
-                                    className='flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm font-poppins-600 text-[#B42318] hover:bg-[#FFF1F0]'
-                                >
-                                    <Trash2 className='h-4 w-4' />
-                                    Delete
-                                </button>
-                            </div>
-                        )}
                     </div>
-                );
+                )
             })}
 
             {renameBadge && (
@@ -391,5 +386,5 @@ export default function BadgeSelector({ badges, selectedBadgeId }: Props) {
                 </div>
             )}
         </div>
-    );
+    )
 }

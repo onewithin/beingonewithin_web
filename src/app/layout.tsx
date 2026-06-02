@@ -228,18 +228,6 @@ export default function RootLayout({
     <html lang="en">
       <head>
         {/*
-          ── Preconnect hints ────────────────────────────────────────────────
-          Tell the browser to open TCP/TLS connections early to key origins.
-          This shaves 100-300 ms off first load for fonts and your API.
-        */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-
-        {/*
           ── Theme color ─────────────────────────────────────────────────────
           Controls the browser chrome color on mobile (address bar, etc.)
           Match this to your primary brand color.

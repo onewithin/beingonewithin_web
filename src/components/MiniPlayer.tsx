@@ -6,18 +6,16 @@ import { useAudio } from '@/contexts/AudioContext'
 import { usePathname, useRouter } from 'next/navigation'
 import { likeMeditation } from '@/lib/actions/meditation'
 
+type MeditationLikeChangedDetail = {
+    meditationId: string
+    liked: boolean
+}
+
 function MiniPlayer() {
-    const { nowPlaying, isPlaying, pauseAudio, playAudio } = useAudio()
+    const { nowPlaying, isPlaying, pauseAudio, playAudio, closePlayer } = useAudio()
     const pathname = usePathname()
     const router = useRouter()
     const [isLiked, setIsLiked] = useState(false)
-    const [dismissedTrackId, setDismissedTrackId] = useState<string | null>(() => {
-        if (typeof window === 'undefined') {
-            return null
-        }
-
-        return window.sessionStorage.getItem('dismissedMiniPlayerId')
-    })
 
     useEffect(() => {
         if (!nowPlaying) {
@@ -25,12 +23,12 @@ function MiniPlayer() {
         }
 
         setIsLiked(false)
+
+        router.prefetch(`/meditation/${nowPlaying.id}?type=${nowPlaying.contentType}`)
     }, [nowPlaying?.id])
 
-    const isDismissed = !!nowPlaying && dismissedTrackId === nowPlaying.id
-
     // Don't show mini player on the meditation details page itself
-    if (!nowPlaying || isDismissed || pathname?.includes(`/meditation/${nowPlaying.id}`)) {
+    if (!nowPlaying || pathname?.includes(`/meditation/${nowPlaying.id}`)) {
         return null
     }
 
@@ -47,7 +45,17 @@ function MiniPlayer() {
             const result = await likeMeditation(nowPlaying.id)
             if (!result.success) {
                 setIsLiked(false)
+                return
             }
+
+            window.dispatchEvent(
+                new CustomEvent<MeditationLikeChangedDetail>('meditation:like-changed', {
+                    detail: {
+                        meditationId: nowPlaying.id,
+                        liked: true,
+                    },
+                }),
+            )
         })()
     }
 
@@ -106,8 +114,7 @@ function MiniPlayer() {
 
                     <button
                         onClick={() => {
-                            setDismissedTrackId(nowPlaying.id)
-                            window.sessionStorage.setItem('dismissedMiniPlayerId', nowPlaying.id)
+                            closePlayer()
                         }}
                         className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#F4F4F5] text-[#5F6368] transition-all hover:bg-[#E8E8EA]"
                         aria-label="Close"

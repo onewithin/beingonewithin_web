@@ -1,13 +1,28 @@
 "use client"
 
-import { Heart, Play, Sparkles, X } from 'lucide-react'
+import { Heart, Play } from 'lucide-react'
 import Image from 'next/image'
 import React, { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
+
+const PremiumModal = dynamic(() => import('./premium-content-modal'), {
+    ssr: false,
+})
 
 type MeditationLikeChangedDetail = {
     meditationId: string
     liked: boolean
+}
+
+const likedStateOverrides = new Map<string, boolean>()
+
+function resolveLikedState(meditationId?: string, initialLiked?: boolean) {
+    if (meditationId && likedStateOverrides.has(meditationId)) {
+        return Boolean(likedStateOverrides.get(meditationId))
+    }
+
+    return Boolean(initialLiked)
 }
 
 export type AudioCardProps = {
@@ -20,81 +35,6 @@ export type AudioCardProps = {
     isPremium?: boolean
 }
 
-function PremiumModal({ onClose, onSubscribe }: { onClose: () => void; onSubscribe: () => void }) {
-    const stopAll = (e: React.MouseEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-    }
-
-    const handleBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
-        stopAll(e)
-        if (e.target === e.currentTarget) onClose()
-    }
-
-    const features = [
-        { icon: '/icons/access.png', label: 'Full Access to All Meditations' },
-        { icon: '/icons/audios.png', label: 'Exclusive Sleep & Rest Audios' },
-        { icon: '/icons/mic.png', label: 'New Weekly Content' },
-        { icon: '/icons/download.png', label: 'Download & Listen Offline' },
-    ]
-
-    const modal = (
-        <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
-            onClick={handleBackdrop}
-        >
-            <div className="relative w-[90%] max-w-sm rounded-[30px] bg-white p-5 shadow-2xl flex flex-col items-center gap-0" onClick={stopAll}>
-                {/* Close */}
-                <button
-                    type="button"
-                    onClick={(e) => { stopAll(e); onClose() }}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-                    aria-label="Close"
-                >
-                    <X className="h-5 w-5" />
-                </button>
-
-                {/* Title row — icon + text */}
-                <div className="flex items-center gap-1.5 mt-1">
-                    <Sparkles className="h-5 w-5 text-amber-400 fill-amber-400" />
-                    <h2 className="font-sniglet-400 text-[1.25rem] text-[#1F5D57]">Premium Content</h2>
-                </div>
-
-                {/* Subtitle */}
-                <p className="mt-4 font-poppins-400 text-[0.875rem] text-[#484848] text-center leading-relaxed">
-                    Subscribe to unlock this and other exciting features
-                </p>
-
-                {/* What You Get */}
-                <div className="mt-6 w-full">
-                    <p className="font-poppins-600 text-[0.75rem] text-[#1F5D57] mb-4">What You Get</p>
-                    <div className="grid grid-cols-2 gap-y-4 px-2">
-                        {features.map((f) => (
-                            <div key={f.label} className="flex items-center gap-2 text-[#1F5D57] font-poppins-600 ">
-                                <Image src={f.icon} alt={f.label} width={20} height={20} className="h-5 w-5" />
-                                <span className="font-poppins-600 text-[0.75rem] text-[#1F5D57] leading-tight max-w-[100px]">
-                                    {f.label}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Subscribe button */}
-                <button
-                    type="button"
-                    onClick={(e) => { stopAll(e); onSubscribe() }}
-                    className="mt-6 w-full rounded-2xl bg-[#1F5D57] py-3 font-poppins-600 text-white text-[0.9375rem] hover:bg-[#174d48] transition-colors"
-                >
-                    Subscribe Now
-                </button>
-            </div>
-        </div>
-    )
-
-    return createPortal(modal, document.body)
-}
-
 function AudioCard({
     title = 'Peace begins with a smile',
     subtitle = '10:00 • Sleep & Rest',
@@ -104,13 +44,14 @@ function AudioCard({
     initialLiked = false,
     isPremium = false,
 }: AudioCardProps) {
-    const [liked, setLiked] = useState(Boolean(initialLiked))
+    const router = useRouter()
+    const [liked, setLiked] = useState(() => resolveLikedState(meditationId, initialLiked))
     const [isLikeLoading, setIsLikeLoading] = useState(false)
     const [isCheckingPremium, setIsCheckingPremium] = useState(false)
     const [showPremiumModal, setShowPremiumModal] = useState(false)
 
     useEffect(() => {
-        setLiked(Boolean(initialLiked))
+        setLiked(resolveLikedState(meditationId, initialLiked))
     }, [initialLiked, meditationId])
 
     useEffect(() => {
@@ -119,7 +60,9 @@ function AudioCard({
         const onLikeChanged = (event: Event) => {
             const customEvent = event as CustomEvent<MeditationLikeChangedDetail>
             if (customEvent.detail?.meditationId !== meditationId) return
-            setLiked(Boolean(customEvent.detail.liked))
+            const nextLiked = Boolean(customEvent.detail.liked)
+            likedStateOverrides.set(meditationId, nextLiked)
+            setLiked(nextLiked)
         }
 
         window.addEventListener('meditation:like-changed', onLikeChanged as EventListener)
@@ -133,7 +76,16 @@ function AudioCard({
         if (!meditationId || isLikeLoading) return
 
         const nextLiked = !liked
+        likedStateOverrides.set(meditationId, nextLiked)
         setLiked(nextLiked)
+        window.dispatchEvent(
+            new CustomEvent<MeditationLikeChangedDetail>('meditation:like-changed', {
+                detail: {
+                    meditationId,
+                    liked: nextLiked,
+                },
+            }),
+        )
         setIsLikeLoading(true)
 
         try {
@@ -147,20 +99,29 @@ function AudioCard({
             })
 
             if (!response.ok) {
+                likedStateOverrides.set(meditationId, !nextLiked)
                 setLiked(!nextLiked)
+                window.dispatchEvent(
+                    new CustomEvent<MeditationLikeChangedDetail>('meditation:like-changed', {
+                        detail: {
+                            meditationId,
+                            liked: !nextLiked,
+                        },
+                    }),
+                )
                 return
             }
-
+        } catch {
+            likedStateOverrides.set(meditationId, !nextLiked)
+            setLiked(!nextLiked)
             window.dispatchEvent(
                 new CustomEvent<MeditationLikeChangedDetail>('meditation:like-changed', {
                     detail: {
                         meditationId,
-                        liked: nextLiked,
+                        liked: !nextLiked,
                     },
                 }),
             )
-        } catch {
-            setLiked(!nextLiked)
         } finally {
             setIsLikeLoading(false)
         }
@@ -185,7 +146,7 @@ function AudioCard({
             const hasPremiumAccess = Boolean(payload?.hasPremiumAccess)
 
             if (hasPremiumAccess) {
-                window.location.assign(`/meditation/${meditationId}`)
+                router.push(`/meditation/${meditationId}`)
                 return
             }
 
@@ -202,7 +163,7 @@ function AudioCard({
             {showPremiumModal && (
                 <PremiumModal
                     onClose={() => setShowPremiumModal(false)}
-                    onSubscribe={() => window.location.assign('/plans')}
+                    onSubscribe={() => router.push('/plans')}
                 />
             )}
             <div

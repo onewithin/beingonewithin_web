@@ -58,7 +58,7 @@ async function Downloads() {
                                 href='/plans'
                                 className='mt-6 w-96 inline-flex min-h-11 items-center justify-center rounded-lg text-[#1F5D57] border-2 border-[#1F5D57] px-6 py-3 font-poppins-600 text-sm shadow-[0_14px_30px_rgba(31,93,87,0.18)] transition-all'
                             >
-                                Try Premium
+                                Upgrade your plan
                             </Link>
 
                             {formattedPeriodEnd && (
@@ -67,13 +67,13 @@ async function Downloads() {
                                 </p>
                             )}
 
-                            <div className='mt-6 w-full flex justify-center'>
+                            <div className='absolute right-0 bottom-0 z-0 w-full flex justify-end pointer-events-none'>
                                 <Image
                                     src='/images/download.png'
-                                    alt='Premium downloads illustration'
+                                    alt='No downloads illustration'
                                     width={700}
                                     height={600}
-                                    className='w-full max-w-[26rem] h-auto object-contain'
+                                    className='w-full max-w-[40rem] h-auto object-contain'
                                 />
                             </div>
                         </div>

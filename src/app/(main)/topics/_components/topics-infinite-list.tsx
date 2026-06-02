@@ -90,7 +90,7 @@ function TopicsInfiniteList({ topicId, initialMeditations, initialHasMore, pageS
                         imageAlt={meditation.title}
                         meditationId={meditation.id}
                         isPremium={Boolean(meditation.isPremium)}
-                        initialLiked={Boolean(meditation.isLiked)}
+                        initialLiked={Boolean((meditation as { isLiked?: boolean; liked?: boolean }).isLiked ?? (meditation as { isLiked?: boolean; liked?: boolean }).liked)}
                     />
                 </Link>
             ))}

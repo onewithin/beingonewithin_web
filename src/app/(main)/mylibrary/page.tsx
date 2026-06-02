@@ -16,15 +16,28 @@ type PageProps = {
 async function MyLibrary({ searchParams }: PageProps) {
     const PAGE_SIZE = 12
     const resolvedSearchParams = (await searchParams) ?? {}
-    const libraryBadges = await getLibraryBadgesData(50)
     const requestedPlaylistId = resolvedSearchParams.playlistId
-    const selectedPlaylistId = libraryBadges.some((badge) => badge.id === requestedPlaylistId)
+
+    // Fetch badges and requested playlist in parallel to reduce TTFB on direct playlist navigation.
+    const [libraryBadges, requestedLibraryResult] = await Promise.all([
+        getLibraryBadgesData(50),
+        requestedPlaylistId
+            ? getLibraryPlaylistMeditationsPaginated(requestedPlaylistId, PAGE_SIZE, 1)
+            : Promise.resolve(null),
+    ])
+
+    const hasRequestedPlaylist = Boolean(
+        requestedPlaylistId && libraryBadges.some((badge) => badge.id === requestedPlaylistId),
+    )
+    const selectedPlaylistId = hasRequestedPlaylist
         ? requestedPlaylistId
         : libraryBadges[0]?.id
 
-    const initialLibraryResult = selectedPlaylistId
-        ? await getLibraryPlaylistMeditationsPaginated(selectedPlaylistId, PAGE_SIZE, 1)
-        : { data: [], hasMore: false }
+    const initialLibraryResult = hasRequestedPlaylist
+        ? (requestedLibraryResult ?? { data: [], hasMore: false })
+        : selectedPlaylistId
+            ? await getLibraryPlaylistMeditationsPaginated(selectedPlaylistId, PAGE_SIZE, 1)
+            : { data: [], hasMore: false }
 
     return (
         <div className='min-h-screen bg-mint-to-white font-poppins-400 p-4'>

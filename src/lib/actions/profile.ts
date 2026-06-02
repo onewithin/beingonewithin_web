@@ -149,6 +149,58 @@ export async function requestAccessHistoryAction(): Promise<ActionResult> {
   };
 }
 
+export async function generateSarRequestOtpAction(): Promise<ActionResult> {
+  const response = await backendAuthedFetch<{
+    success?: boolean;
+    message?: string;
+  }>("/api/otp/generate", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+
+  if (!response.ok) {
+    return {
+      success: false,
+      message:
+        response.data?.message ||
+        "Unable to send OTP for access history request.",
+    };
+  }
+
+  return {
+    success: true,
+    message: response.data?.message || "OTP sent successfully.",
+  };
+}
+
+export async function verifySarRequestWithOtpAction(
+  otp: string,
+): Promise<ActionResult> {
+  if (!/^\d{6}$/.test(otp)) {
+    return {
+      success: false,
+      message: "Please enter a valid 6-digit OTP.",
+    };
+  }
+
+  const verifyResponse = await backendAuthedFetch<{
+    success?: boolean;
+    message?: string;
+  }>("/api/otp/verify", {
+    method: "POST",
+    body: JSON.stringify({ otp }),
+  });
+
+  if (!verifyResponse.ok || verifyResponse.data?.success === false) {
+    return {
+      success: false,
+      message: verifyResponse.data?.message || "OTP verification failed.",
+    };
+  }
+
+  return requestAccessHistoryAction();
+}
+
 export async function generateDeleteAccountOtpAction(): Promise<ActionResult> {
   const response = await backendAuthedFetch<{
     success?: boolean;
@@ -182,12 +234,35 @@ export async function verifyOtpAndDeleteAccountAction(
     };
   }
 
+  const verifyResponse = await backendAuthedFetch<{
+    success?: boolean;
+    message?: string;
+  }>("/api/otp/verify", {
+    method: "POST",
+    body: JSON.stringify({ otp }),
+  });
+
+  if (!verifyResponse.ok || verifyResponse.data?.success === false) {
+    return {
+      success: false,
+      message: verifyResponse.data?.message || "OTP verification failed.",
+    };
+  }
+
+  const { token, userId } = await getAuthContext();
+
+  if (!token || !userId) {
+    return {
+      success: false,
+      message: "Not authenticated.",
+    };
+  }
+
   const deleteResponse = await backendAuthedFetch<{
     success?: boolean;
     message?: string;
-  }>("/api/user/delete-account", {
-    method: "POST",
-    body: JSON.stringify({ otp }),
+  }>(`/api/user/${userId}`, {
+    method: "DELETE",
   });
 
   if (!deleteResponse.ok) {

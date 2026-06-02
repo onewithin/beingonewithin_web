@@ -65,6 +65,7 @@ function TrialPopup({
 type PlanCardProps = {
     plan: SubscriptionPlan;
     isMonthly: boolean;
+    disableSubscribe?: boolean;
 };
 
 const planColors = {
@@ -82,7 +83,7 @@ const planColors = {
     },
 };
 
-export default function PlanCard({ plan, isMonthly }: PlanCardProps) {
+export default function PlanCard({ plan, isMonthly, disableSubscribe = false }: PlanCardProps) {
     const [loading, setLoading] = useState(false);
     const [showTrialPopup, setShowTrialPopup] = useState(false);
     const router = useRouter();
@@ -112,6 +113,8 @@ export default function PlanCard({ plan, isMonthly }: PlanCardProps) {
     };
 
     const handleSubscribe = () => {
+        if (disableSubscribe) return;
+
         if (plan.trialDays && plan.trialDays > 0) {
             setShowTrialPopup(true);
         } else {
@@ -131,6 +134,7 @@ export default function PlanCard({ plan, isMonthly }: PlanCardProps) {
     };
 
     const getButtonText = () => {
+        if (disableSubscribe) return "Already subscribed";
         if (loading) return "Loading...";
         if (plan.trialDays && plan.trialDays > 0) return `Try ${plan.trialDays}-day trial`;
         if (isMonthly) return "Subscribe Monthly";
@@ -179,7 +183,7 @@ export default function PlanCard({ plan, isMonthly }: PlanCardProps) {
                     </div>
                     <Button
                         onClick={handleSubscribe}
-                        disabled={loading}
+                        disabled={loading || disableSubscribe}
                         className={`w-full font-poppins-600 px-6 py-5 ${colors.button} text-white font-semibold rounded-xl mb-4`}
                     >
                         {getButtonText()}

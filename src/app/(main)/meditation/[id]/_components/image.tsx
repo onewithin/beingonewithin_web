@@ -3,6 +3,11 @@ import Image from 'next/image'
 import React, { useEffect, useRef, useState } from 'react'
 import { likeMeditation, unlikeMeditation } from '@/lib/actions/meditation'
 
+type MeditationLikeChangedDetail = {
+    meditationId: string
+    liked: boolean
+}
+
 interface AudioImageProps {
     thumbnail: string;
     meditationId: string;
@@ -55,6 +60,14 @@ function AudioImage({ thumbnail, meditationId, initialLiked = false, contentType
         // React immediately in UI and show instant feedback.
         setLiked(nextLiked)
         showFeedback(nextLiked ? 'Added to favorites' : 'Removed from favorites', 'success')
+        window.dispatchEvent(
+            new CustomEvent<MeditationLikeChangedDetail>('meditation:like-changed', {
+                detail: {
+                    meditationId,
+                    liked: nextLiked,
+                },
+            }),
+        )
 
         void (async () => {
             const result = nextLiked
@@ -65,6 +78,14 @@ function AudioImage({ thumbnail, meditationId, initialLiked = false, contentType
                 // Only rollback if this is still the latest action.
                 if (latestActionIdRef.current === actionId) {
                     setLiked(!nextLiked)
+                    window.dispatchEvent(
+                        new CustomEvent<MeditationLikeChangedDetail>('meditation:like-changed', {
+                            detail: {
+                                meditationId,
+                                liked: !nextLiked,
+                            },
+                        }),
+                    )
                     showFeedback(result.error || (nextLiked ? 'Failed to like' : 'Failed to remove from favorites'), 'error')
                 }
                 console.error(nextLiked ? 'Failed to like:' : 'Failed to unlike:', result.error)

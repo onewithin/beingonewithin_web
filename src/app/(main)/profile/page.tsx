@@ -67,7 +67,7 @@ export default async function ProfilePage() {
             <div className="bg-white w-full flex-grow px-6 py-10">
                 <MenuItem planLabel={planLabel} signOutAction={signOutProfileAction} />
                 <p className="text-center text-[#2B7272] text-[11px] mt-2 mb-20 md:mb-24 font-poppins-400">
-                    Prana App v1.0.0
+                    BeignOneWithin v1.0.0
                 </p>
             </div>
             <BottomNav activeTab="profile" />

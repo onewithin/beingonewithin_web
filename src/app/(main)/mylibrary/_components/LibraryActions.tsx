@@ -61,8 +61,9 @@ function LibraryActions() {
             window.dispatchEvent(new CustomEvent('library:playlist-switch-start', { detail: result.playlist.id }))
 
             handleClose()
-            router.push(`/mylibrary?playlistId=${encodeURIComponent(result.playlist.id)}`)
-            router.refresh()
+            const target = `/mylibrary?playlistId=${encodeURIComponent(result.playlist.id)}`
+            router.prefetch(target)
+            router.push(target, { scroll: false })
         })
     }
 

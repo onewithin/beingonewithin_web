@@ -1,7 +1,13 @@
+"use client";
+
 import Link from 'next/link';
 import Image from 'next/image';
 import React from 'react';
-import MiniPlayer from './MiniPlayer';
+import dynamic from 'next/dynamic';
+
+const MiniPlayer = dynamic(() => import('./MiniPlayer'), {
+    ssr: false,
+});
 
 type Props = {
     activeTab: string

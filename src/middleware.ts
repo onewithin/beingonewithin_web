@@ -19,6 +19,7 @@ const PROTECTED_PREFIXES = [
 // Routes only accessible when NOT signed in
 const GUEST_ONLY_PREFIXES = [
   "/sign-in",
+  "/register",
   "/verify-otp",
   "/personal-info",
   "/introduction",

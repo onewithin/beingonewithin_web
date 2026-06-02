@@ -144,6 +144,15 @@ function AudioProgressBar({
         }
     }, [contentType, activeWatchHistoryId, meditationId])
 
+    // Start watch session in the background so the first play tap is not blocked by API latency.
+    useEffect(() => {
+        if (contentType !== 'meditation' || activeWatchHistoryId) {
+            return
+        }
+
+        void ensureWatchSession()
+    }, [contentType, activeWatchHistoryId, ensureWatchSession])
+
     // Save watch progress to backend
     const saveWatchProgress = useCallback(async (watchedSeconds: number, isCompleted: boolean = false) => {
         // Only save for meditation type
@@ -220,10 +229,7 @@ function AudioProgressBar({
             saveWatchProgress(currentTime, false)
         } else {
             if (contentType === 'meditation') {
-                const sessionId = await ensureWatchSession()
-                if (!sessionId) {
-                    return
-                }
+                void ensureWatchSession()
             }
             playAudio()
         }
@@ -237,10 +243,7 @@ function AudioProgressBar({
         lastSavedTimeRef.current = 0
 
         if (contentType === 'meditation') {
-            const sessionId = await ensureWatchSession()
-            if (!sessionId) {
-                return
-            }
+            void ensureWatchSession()
         }
 
         playAudio()

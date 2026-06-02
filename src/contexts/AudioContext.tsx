@@ -1,5 +1,6 @@
 'use client'
 import React, { createContext, useContext, useState, useRef, ReactNode, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 export interface NowPlaying {
     id: string
@@ -28,6 +29,7 @@ interface AudioContextType {
 const AudioContext = createContext<AudioContextType | undefined>(undefined)
 
 export function AudioProvider({ children }: { children: ReactNode }) {
+    const pathname = usePathname()
     const audioRef = useRef<HTMLAudioElement>(null)
     const bgMusicRef = useRef<HTMLAudioElement>(null)
     const [nowPlaying, setNowPlaying] = useState<NowPlaying | null>(null)
@@ -36,9 +38,14 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
     const [hasUserInteracted, setHasUserInteracted] = useState(false)
+    const isMeditationDetailsRoute = pathname?.startsWith('/meditation/')
 
-    const playWithAutoplayGuard = (audio: HTMLAudioElement | null) => {
-        if (!audio || !hasUserInteracted) return
+    const playWithAutoplayGuard = (
+        audio: HTMLAudioElement | null,
+        forceFromUserAction: boolean = false,
+    ) => {
+        if (!audio) return
+        if (!forceFromUserAction && !hasUserInteracted) return
 
         const playPromise = audio.play()
         if (playPromise !== undefined) {
@@ -57,7 +64,23 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         const audio = audioRef.current
         if (!audio || !nowPlaying) return
 
-        if (audio.src !== nowPlaying.audioSrc) {
+        const normalizeSrc = (value: string) => {
+            try {
+                return new URL(value, window.location.origin).href
+            } catch {
+                return value
+            }
+        }
+
+        const currentSrc = audio.getAttribute('src') || audio.currentSrc || ''
+        const normalizedCurrentSrc = currentSrc ? normalizeSrc(currentSrc) : ''
+        const normalizedNowPlayingSrc = normalizeSrc(nowPlaying.audioSrc)
+
+        if (normalizedCurrentSrc !== normalizedNowPlayingSrc) {
+            // Reset visible player state while new metadata is loading.
+            setIsPlaying(false)
+            setCurrentTime(0)
+            setDuration(0)
             audio.src = nowPlaying.audioSrc
             audio.load()
         }
@@ -148,8 +171,16 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         const bgMusic = bgMusicRef.current
         if (!bgMusic) return
 
+        if (isMeditationDetailsRoute) {
+            if (!bgMusic.paused) {
+                bgMusic.pause()
+            }
+            bgMusic.currentTime = 0
+            return
+        }
+
         playWithAutoplayGuard(bgMusic)
-    }, [hasUserInteracted])
+    }, [hasUserInteracted, isMeditationDetailsRoute])
 
     // Stop all audio when the browser tab is not active.
     useEffect(() => {
@@ -176,10 +207,11 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     }
 
     const playAudio = () => {
-        playWithAutoplayGuard(audioRef.current)
+        // Explicit play button click should always attempt playback.
+        playWithAutoplayGuard(audioRef.current, true)
 
-        if (bgMusicRef.current) {
-            playWithAutoplayGuard(bgMusicRef.current)
+        if (!isMeditationDetailsRoute && bgMusicRef.current) {
+            playWithAutoplayGuard(bgMusicRef.current, true)
         }
     }
 
@@ -216,7 +248,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
             }}
         >
             {/* Global audio element that persists across page navigation */}
-            <audio ref={audioRef} preload="metadata" />
+            <audio ref={audioRef} preload="auto" />
             {/* Background music that plays during meditation */}
             <audio
                 ref={bgMusicRef}

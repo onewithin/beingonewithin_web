@@ -2,7 +2,11 @@
 import React, { useState, useEffect } from 'react'
 import { X, Plus, ListMusic } from 'lucide-react'
 import { getUserPlaylists, addMeditationToPlaylist, type Playlist } from '@/lib/actions/playlist'
-import CreateFolderModal from './CreateFolderModal'
+import dynamic from 'next/dynamic'
+
+const CreateFolderModal = dynamic(() => import('./CreateFolderModal'), {
+    ssr: false,
+})
 
 interface AddToPlaylistModalProps {
     isOpen: boolean
@@ -189,11 +193,13 @@ function AddToPlaylistModal({ isOpen, onClose, meditationId, meditationTitle }: 
                 </div>
             </div>
 
-            <CreateFolderModal
-                isOpen={isCreateFolderOpen}
-                onClose={() => setIsCreateFolderOpen(false)}
-                onCreated={handleFolderCreated}
-            />
+            {isCreateFolderOpen && (
+                <CreateFolderModal
+                    isOpen={isCreateFolderOpen}
+                    onClose={() => setIsCreateFolderOpen(false)}
+                    onCreated={handleFolderCreated}
+                />
+            )}
         </div>
     )
 }

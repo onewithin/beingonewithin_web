@@ -24,6 +24,10 @@ export default async function SubscriptionPlansPage() {
         }
     }
 
+    const hasActiveSubscription =
+        currentSubscription?.status === "ACTIVE" ||
+        currentSubscription?.status === "TRIALING";
+
     return (
         <div className="min-h-screen  flex flex-col">
             <div className="bg-[#DDF3E5] p-4 rounded-b-[50px]">
@@ -77,7 +81,7 @@ export default async function SubscriptionPlansPage() {
             </div>
             <div>
                 <div className="md:max-w-[600px] lg:max-w-[800px] xl:max-w-[1000px] mx-auto w-full mt-12 mb-6 px-4">
-                    {currentSubscription?.status === "ACTIVE" && (
+                    {hasActiveSubscription && (
                         <div className="mb-6 rounded-[20px] border border-[#1f5d57]/20 bg-[#DDF3E5] px-4 py-3 text-center font-poppins-400 text-[#1f5d57]">
                             You already have an active subscription. You can still browse available plans below.
                         </div>
@@ -98,11 +102,12 @@ export default async function SubscriptionPlansPage() {
                                         key={plan.id}
                                         plan={plan}
                                         isMonthly={plan.interval === "month"}
+                                        disableSubscribe={hasActiveSubscription}
                                     />
                                 ))}
                             </div>
 
-                            {currentSubscription && currentSubscription.status !== "ACTIVE" && (
+                            {currentSubscription && !hasActiveSubscription && (
                                 <div className="mt-6 text-center">
                                     <Link
                                         href="/subscription/status"

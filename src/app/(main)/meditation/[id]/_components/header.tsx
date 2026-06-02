@@ -13,7 +13,12 @@ function Header({ categoryName = 'Meditation', textColor = '#1f2937' }: HeaderPr
     const router = useRouter();
 
     const handleBack = () => {
-        router.back();
+        if (window.history.length > 1) {
+            router.back();
+            return;
+        }
+
+        router.push('/home');
     };
 
     return (

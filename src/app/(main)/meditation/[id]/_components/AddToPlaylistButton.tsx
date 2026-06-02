@@ -1,6 +1,10 @@
 'use client'
 import React, { useState } from 'react'
-import AddToPlaylistModal from './AddToPlaylistModal'
+import dynamic from 'next/dynamic'
+
+const AddToPlaylistModal = dynamic(() => import('./AddToPlaylistModal'), {
+    ssr: false,
+})
 
 interface AddToPlaylistButtonProps {
     meditationId: string
@@ -40,12 +44,14 @@ function AddToPlaylistButton({ meditationId, meditationTitle, contentType, accen
                 />
             </button>
 
-            <AddToPlaylistModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                meditationId={meditationId}
-                meditationTitle={meditationTitle}
-            />
+            {isModalOpen && (
+                <AddToPlaylistModal
+                    isOpen={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    meditationId={meditationId}
+                    meditationTitle={meditationTitle}
+                />
+            )}
         </>
     )
 }
