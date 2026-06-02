@@ -11,7 +11,15 @@ import { Suspense } from "react"
 export default async function SubscriptionPlansPage() {
     // Check if user already has an active subscription
     const statusResult = await getSubscriptionStatus();
-    const currentSubscription = statusResult.ok ? statusResult.data : null;
+    const currentSubscription = statusResult.ok
+        ? (statusResult.data as (Subscription & {
+            isPremium?: boolean
+            hasAccessToPremium?: boolean
+            activeSubscription?: {
+                status?: string | null
+            } | null
+        }) | null)
+        : null;
 
     // Fetch available plans
     const plansResult = await getSubscriptionPlans();
@@ -25,6 +33,10 @@ export default async function SubscriptionPlansPage() {
     }
 
     const hasActiveSubscription =
+        currentSubscription?.hasAccessToPremium === true ||
+        currentSubscription?.isPremium === true ||
+        currentSubscription?.activeSubscription?.status === "ACTIVE" ||
+        currentSubscription?.activeSubscription?.status === "TRIALING" ||
         currentSubscription?.status === "ACTIVE" ||
         currentSubscription?.status === "TRIALING";
 
