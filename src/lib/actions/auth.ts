@@ -668,6 +668,58 @@ export async function resendOtpAction(): Promise<{
   }
 }
 
+/** Generate a QR login token */
+export async function generateQrAction(): Promise<{
+  success: boolean;
+  qrToken?: string;
+  expiresAt?: string;
+  message?: string;
+}> {
+  try {
+    const response = await callBackend<{
+      success?: boolean;
+      qrToken?: string;
+      expiresAt?: string;
+      message?: string;
+    }>("/api/user/qr/generate", { method: "GET" });
+
+    if (!response.ok || !response.data?.qrToken) {
+      return { success: false, message: response.data?.message || "Failed to generate QR code." };
+    }
+
+    return { success: true, qrToken: response.data.qrToken, expiresAt: response.data.expiresAt };
+  } catch {
+    return { success: false, message: "Network error. Please try again." };
+  }
+}
+
+/** Set auth cookies after successful QR scan (called from client after SSE event) */
+export async function setQrAuthCookiesAction(
+  token: string,
+  refreshToken: string,
+): Promise<{ success: boolean }> {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+      path: "/",
+    });
+    cookieStore.set("refresh_token", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: REFRESH_TOKEN_COOKIE_MAX_AGE_SECONDS,
+      path: "/",
+    });
+    return { success: true };
+  } catch {
+    return { success: false };
+  }
+}
+
 /** Sign out the user */
 export async function logoutAction(): Promise<void> {
   const cookieStore = await cookies();

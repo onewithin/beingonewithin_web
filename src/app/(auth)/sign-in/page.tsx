@@ -262,12 +262,17 @@ export default function SignIn() {
                             onGoogleClick={handleGoogleClick}
                             onAppleClick={handleAppleClick}
                             footer={(
-                                <p className="font-poppins-400 text-[0.8125rem] text-center lg:text-left">
-                                    Don't have an account?{' '}
-                                    <Link href="/personal-info" className="font-poppins-600 text-secondary underline">
-                                        Sign up
+                                <div className="flex flex-col gap-2 items-center lg:items-start">
+                                    <p className="font-poppins-400 text-[0.8125rem] text-center lg:text-left">
+                                        Don't have an account?{' '}
+                                        <Link href="/personal-info" className="font-poppins-600 text-secondary underline">
+                                            Sign up
+                                        </Link>
+                                    </p>
+                                    <Link href="/qr-login" className="font-poppins-400 text-[0.8125rem] text-secondary underline text-center lg:text-left">
+                                        Sign in with QR code
                                     </Link>
-                                </p>
+                                </div>
                             )}
                         />
                     ) : (
