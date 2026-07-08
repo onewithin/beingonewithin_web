@@ -5,10 +5,6 @@ import { useSearchParams } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { postToApp } from '../_lib/webview-bridge'
 
-function closeWebView(payment: 'success' | 'cancel') {
-    postToApp({ type: 'payment_result', payment })
-}
-
 export default function PayResultPopup() {
     const searchParams = useSearchParams()
     const [result, setResult] = useState<'success' | 'cancel' | null>(null)
@@ -17,6 +13,7 @@ export default function PayResultPopup() {
         const payment = searchParams.get('payment')
         if (payment === 'success' || payment === 'cancel') {
             setResult(payment)
+            postToApp({ type: 'payment_result', payment })
             // Clean the URL without reloading the page
             const url = new URL(window.location.href)
             url.searchParams.delete('payment')
@@ -57,7 +54,7 @@ export default function PayResultPopup() {
                 {/* Button */}
                 <button
                     type="button"
-                    onClick={isSuccess ? () => closeWebView('success') : onClose}
+                    onClick={isSuccess ? () => postToApp({ type: 'close_webview' }) : onClose}
                     className="mt-6 w-full rounded-2xl bg-[#1F5D57] py-3 font-poppins-600 text-white text-[0.9375rem] hover:bg-[#174d48] transition-colors"
                 >
                     {isSuccess ? 'Go back to app' : 'Try Again'}
