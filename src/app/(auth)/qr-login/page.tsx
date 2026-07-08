@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { QRCodeSVG } from 'qrcode.react'
-import { generateQrAction, setQrAuthCookiesAction } from '@/lib/actions/auth'
+import { checkQrStatusAction, generateQrAction, setQrAuthCookiesAction } from '@/lib/actions/auth'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -35,7 +35,9 @@ export default function QrLoginPage() {
     const [errorMessage, setErrorMessage] = useState('')
     const sseRef = useRef<EventSource | null>(null)
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
     const expireTimeRef = useRef<number>(0)
+    const completingRef = useRef(false)
 
     const closeSse = () => {
         sseRef.current?.close()
@@ -49,6 +51,13 @@ export default function QrLoginPage() {
         }
     }
 
+    const stopPolling = () => {
+        if (pollRef.current) {
+            clearInterval(pollRef.current)
+            pollRef.current = null
+        }
+    }
+
     const startCountdown = (expiresAt: string) => {
         stopTimer()
         expireTimeRef.current = new Date(expiresAt).getTime()
@@ -58,6 +67,7 @@ export default function QrLoginPage() {
             setSecondsLeft(remaining)
             if (remaining <= 0) {
                 stopTimer()
+                stopPolling()
                 closeSse()
                 setQrState('expired')
             }
@@ -66,6 +76,27 @@ export default function QrLoginPage() {
         tick()
         timerRef.current = setInterval(tick, 1000)
     }
+
+    const completeLogin = useCallback(async (token: string, refreshToken: string) => {
+        if (completingRef.current) return
+        completingRef.current = true
+        stopTimer()
+        stopPolling()
+        closeSse()
+        setQrState('scanned')
+        await setQrAuthCookiesAction(token, refreshToken)
+        router.replace('/home')
+    }, [router]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const startPolling = useCallback((token: string) => {
+        stopPolling()
+        pollRef.current = setInterval(async () => {
+            const result = await checkQrStatusAction(token)
+            if (result.status === 'SCANNED' && result.token && result.refreshToken) {
+                await completeLogin(result.token, result.refreshToken)
+            }
+        }, 2000)
+    }, [completeLogin])
 
     const connectSse = useCallback((token: string) => {
         closeSse()
@@ -80,11 +111,7 @@ export default function QrLoginPage() {
                     refreshToken?: string
                 }
                 if (data.success && data.token && data.refreshToken) {
-                    stopTimer()
-                    closeSse()
-                    setQrState('scanned')
-                    await setQrAuthCookiesAction(data.token, data.refreshToken)
-                    router.replace('/home')
+                    await completeLogin(data.token, data.refreshToken)
                 }
             } catch {
                 // ignore parse errors
@@ -92,15 +119,17 @@ export default function QrLoginPage() {
         })
 
         es.onerror = () => {
-            // SSE connection dropped — ignore if already scanned/expired
+            // SSE connection dropped — polling fallback (started alongside SSE) covers this case
         }
-    }, [router])
+    }, [completeLogin])
 
     const generateQr = useCallback(async () => {
         setQrState('loading')
         setErrorMessage('')
+        completingRef.current = false
         closeSse()
         stopTimer()
+        stopPolling()
 
         const result = await generateQrAction()
 
@@ -114,13 +143,15 @@ export default function QrLoginPage() {
         setQrState('ready')
         startCountdown(result.expiresAt)
         connectSse(result.qrToken)
-    }, [connectSse]) // eslint-disable-line react-hooks/exhaustive-deps
+        startPolling(result.qrToken)
+    }, [connectSse, startPolling]) // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         generateQr()
         return () => {
             closeSse()
             stopTimer()
+            stopPolling()
         }
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

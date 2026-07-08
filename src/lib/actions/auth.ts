@@ -693,6 +693,33 @@ export async function generateQrAction(): Promise<{
   }
 }
 
+/** Poll fallback for QR login — used alongside SSE in case the event stream is buffered/dropped by a proxy */
+export async function checkQrStatusAction(qrToken: string): Promise<{
+  status: "PENDING" | "SCANNED" | "EXPIRED" | string;
+  token?: string;
+  refreshToken?: string;
+}> {
+  try {
+    const response = await callBackend<{
+      status?: string;
+      token?: string;
+      refreshToken?: string;
+    }>(`/api/user/qr/status?token=${encodeURIComponent(qrToken)}`, { method: "GET" });
+
+    if (!response.ok || !response.data?.status) {
+      return { status: "PENDING" };
+    }
+
+    return {
+      status: response.data.status,
+      token: response.data.token,
+      refreshToken: response.data.refreshToken,
+    };
+  } catch {
+    return { status: "PENDING" };
+  }
+}
+
 /** Set auth cookies after successful QR scan (called from client after SSE event) */
 export async function setQrAuthCookiesAction(
   token: string,
