@@ -8,6 +8,7 @@ import { colorToPillClass, formatMinutes, formatToMMSS, getDarkerColor } from '@
 import { getSubscriptionStatus } from '@/lib/actions/subscription'
 import LazyAudioCard from '@/components/lazy-audio-card'
 import LocalGreeting from './_components/local-greeting'
+import HomeMenu from './_components/home-menu'
 import Image from 'next/image'
 
 async function Home() {
@@ -41,9 +42,7 @@ async function Home() {
                         <Image src="/icons/morning.png" alt="Morning" width={20} height={20} className='w-[1.25rem] h-[1.25rem]' />
                         <LocalGreeting name={profile?.name} />
                     </div>
-                    <div>
-                        <Image src="/icons/flower1.png" alt="Flower" width={26} height={26} className='w-[1.625rem] h-[1.625rem]' />
-                    </div>
+                    <HomeMenu />
                 </div>
 
                 <div className='text-center my-8'>

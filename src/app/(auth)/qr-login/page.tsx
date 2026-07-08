@@ -236,8 +236,8 @@ export default function QrLoginPage() {
                         <ol className="text-[0.8125rem] font-poppins-400 text-[#484848] space-y-2 list-none w-full">
                             {[
                                 'Open the Prana app on your phone',
-                                'Go to Profile → Scan QR Code',
-                                'Point your camera at this code',
+                                'On Home, tap the menu icon in the top-right corner',
+                                'Select Scan QR Code and point your camera at this code',
                             ].map((step, i) => (
                                 <li key={i} className="flex items-start gap-3">
                                     <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#DDF3E5] text-secondary font-poppins-600 text-[0.6875rem] flex items-center justify-center mt-0.5">

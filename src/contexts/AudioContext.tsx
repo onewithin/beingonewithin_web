@@ -17,14 +17,18 @@ interface AudioContextType {
     currentTime: number
     duration: number
     volume: number
+    bgMusicEnabled: boolean
     setNowPlaying: (data: NowPlaying | null) => void
     setVolume: (vol: number) => void
     pauseAudio: () => void
     playAudio: () => void
     seekTo: (time: number) => void
     closePlayer: () => void
+    setBgMusicEnabled: (enabled: boolean) => void
     audioRef: React.RefObject<HTMLAudioElement | null>
 }
+
+const BG_MUSIC_ENABLED_STORAGE_KEY = 'bgMusicEnabled'
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined)
 
@@ -38,6 +42,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
     const [hasUserInteracted, setHasUserInteracted] = useState(false)
+    const [bgMusicEnabled, setBgMusicEnabledState] = useState(true)
     const isMeditationDetailsRoute = pathname?.startsWith('/meditation/')
 
     const playWithAutoplayGuard = (
@@ -164,6 +169,10 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         // Preload the background music
         bgMusic.load()
 
+        const storedPreference = window.localStorage.getItem(BG_MUSIC_ENABLED_STORAGE_KEY)
+        if (storedPreference !== null) {
+            setBgMusicEnabledState(storedPreference === 'true')
+        }
     }, [])
 
     // Keep background music running continuously once user interaction is available.
@@ -171,7 +180,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         const bgMusic = bgMusicRef.current
         if (!bgMusic) return
 
-        if (isMeditationDetailsRoute) {
+        if (isMeditationDetailsRoute || !bgMusicEnabled) {
             if (!bgMusic.paused) {
                 bgMusic.pause()
             }
@@ -180,7 +189,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         }
 
         playWithAutoplayGuard(bgMusic)
-    }, [hasUserInteracted, isMeditationDetailsRoute])
+    }, [hasUserInteracted, isMeditationDetailsRoute, bgMusicEnabled])
 
     // Stop all audio when the browser tab is not active.
     useEffect(() => {
@@ -210,7 +219,19 @@ export function AudioProvider({ children }: { children: ReactNode }) {
         // Explicit play button click should always attempt playback.
         playWithAutoplayGuard(audioRef.current, true)
 
-        if (!isMeditationDetailsRoute && bgMusicRef.current) {
+        if (!isMeditationDetailsRoute && bgMusicEnabled && bgMusicRef.current) {
+            playWithAutoplayGuard(bgMusicRef.current, true)
+        }
+    }
+
+    const setBgMusicEnabled = (enabled: boolean) => {
+        setBgMusicEnabledState(enabled)
+        window.localStorage.setItem(BG_MUSIC_ENABLED_STORAGE_KEY, String(enabled))
+
+        if (!enabled && bgMusicRef.current) {
+            bgMusicRef.current.pause()
+            bgMusicRef.current.currentTime = 0
+        } else if (enabled && !isMeditationDetailsRoute) {
             playWithAutoplayGuard(bgMusicRef.current, true)
         }
     }
@@ -238,6 +259,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
                 currentTime,
                 duration,
                 volume,
+                bgMusicEnabled,
                 audioRef,
                 setNowPlaying,
                 setVolume,
@@ -245,6 +267,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
                 playAudio,
                 seekTo,
                 closePlayer,
+                setBgMusicEnabled,
             }}
         >
             {/* Global audio element that persists across page navigation */}
