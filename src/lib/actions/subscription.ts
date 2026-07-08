@@ -185,6 +185,43 @@ async function authenticatedFetch<T>(
   return { ok: true, data: data.data || data };
 }
 
+async function tokenFetch<T>(
+  token: string,
+  path: string,
+  options: RequestInit = {},
+): Promise<ApiResult<T>> {
+  let response: Response;
+  try {
+    response = await fetch(`${NEXT_PUBLIC_BACKEND_URL}${path}`, {
+      ...options,
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      data: null,
+      message: error instanceof Error ? error.message : "Network error",
+    };
+  }
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    return {
+      ok: false,
+      data: null,
+      message: errorData.message || `Request failed: ${response.status}`,
+    };
+  }
+
+  const data = await response.json();
+  return { ok: true, data: data.data || data };
+}
+
 /**
  * Get all available subscription plans
  */
@@ -193,6 +230,52 @@ export async function getSubscriptionPlans(): Promise<
 > {
   return authenticatedFetch<SubscriptionPlan[] | Subscription>(
     "/api/subscriptions/plans",
+  );
+}
+
+/**
+ * Get subscription plans using an explicit bearer token instead of the
+ * auth_token cookie (used by the public token-in-URL payment page).
+ */
+export async function getSubscriptionPlansWithToken(
+  token: string,
+): Promise<ApiResult<SubscriptionPlan[] | Subscription>> {
+  return tokenFetch<SubscriptionPlan[] | Subscription>(
+    token,
+    "/api/subscriptions/plans",
+  );
+}
+
+/**
+ * Get current subscription status using an explicit bearer token instead of
+ * the auth_token cookie (used by the public token-in-URL payment page).
+ */
+export async function getSubscriptionStatusWithToken(
+  token: string,
+): Promise<ApiResult<Subscription | null>> {
+  return tokenFetch<Subscription | null>(token, "/api/subscriptions/status");
+}
+
+/**
+ * Create a web checkout session using an explicit bearer token instead of
+ * the auth_token cookie (used by the public token-in-URL payment page).
+ */
+export async function createWebCheckoutWithToken(
+  token: string,
+  planId: string,
+  options?: { successUrl?: string; cancelUrl?: string },
+): Promise<ApiResult<CheckoutSessionData>> {
+  return tokenFetch<CheckoutSessionData>(
+    token,
+    "/api/subscriptions/web-checkout",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        planId,
+        successUrl: options?.successUrl,
+        cancelUrl: options?.cancelUrl,
+      }),
+    },
   );
 }
 

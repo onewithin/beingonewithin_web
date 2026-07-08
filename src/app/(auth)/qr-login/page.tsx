@@ -27,30 +27,6 @@ function MeditationIcon() {
     )
 }
 
-function CountdownRing({ secondsLeft, total }: { secondsLeft: number; total: number }) {
-    const radius = 54
-    const circumference = 2 * Math.PI * radius
-    const progress = secondsLeft / total
-    const dashOffset = circumference * (1 - progress)
-    const isLow = secondsLeft <= 60
-
-    return (
-        <svg width="124" height="124" className="absolute -top-[14px] -left-[14px]" style={{ transform: 'rotate(-90deg)' }}>
-            <circle cx="62" cy="62" r={radius} fill="none" stroke="#DDF3E5" strokeWidth="4" />
-            <circle
-                cx="62" cy="62" r={radius}
-                fill="none"
-                stroke={isLow ? '#f59e0b' : '#1f5d57'}
-                strokeWidth="4"
-                strokeDasharray={circumference}
-                strokeDashoffset={dashOffset}
-                strokeLinecap="round"
-                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.5s' }}
-            />
-        </svg>
-    )
-}
-
 export default function QrLoginPage() {
     const router = useRouter()
     const [qrState, setQrState] = useState<QrState>('idle')
@@ -182,26 +158,14 @@ export default function QrLoginPage() {
 
                     {qrState === 'ready' && qrToken && (
                         <div className="flex flex-col items-center gap-4">
-                            <div className="relative">
-                                {/* QR code with padding + logo overlay */}
-                                <div className="border-4 border-[#DDF3E5] rounded-2xl p-3 bg-white relative">
-                                    <QRCodeSVG
-                                        value={qrToken}
-                                        size={196}
-                                        bgColor="#ffffff"
-                                        fgColor="#1f5d57"
-                                        level="M"
-                                        imageSettings={{
-                                            src: '/icons/flower1.png',
-                                            height: 28,
-                                            width: 28,
-                                            excavate: true,
-                                        }}
-                                    />
-                                </div>
-
-                                {/* Countdown ring around the card */}
-                                <CountdownRing secondsLeft={secondsLeft} total={300} />
+                            <div className="border-4 border-[#DDF3E5] rounded-2xl p-3 bg-white">
+                                <QRCodeSVG
+                                    value={qrToken}
+                                    size={196}
+                                    bgColor="#ffffff"
+                                    fgColor="#1f5d57"
+                                    level="M"
+                                />
                             </div>
 
                             <p className={`font-poppins-600 text-[0.875rem] ${secondsLeft <= 60 ? 'text-amber-500' : 'text-secondary'}`}>
